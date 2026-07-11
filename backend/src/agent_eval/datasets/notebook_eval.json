@@ -1,0 +1,219 @@
+[
+  {
+    "id": "nb_gw_01",
+    "doc_label": "gravitational_waves",
+    "question": "Sự kiện GW150914 được công bố là kết quả của sự sáp nhập hai vật thể nào?",
+    "expected_page": 6,
+    "expected_keyword": "GW150914"
+  },
+  {
+    "id": "nb_gw_02",
+    "doc_label": "gravitational_waves",
+    "question": "Giải Nobel Vật lý năm 2017 được trao cho ba nhà vật lý nào vì đóng góp cho dự án LIGO?",
+    "expected_page": 7,
+    "expected_keyword": "Weiss, Barish, and Thorne"
+  },
+  {
+    "id": "nb_gw_03",
+    "doc_label": "gravitational_waves",
+    "question": "Phương trình Einstein của thuyết tương đối rộng được đề xuất vào năm nào?",
+    "expected_page": 2,
+    "expected_keyword": "1915"
+  },
+  {
+    "id": "nb_gw_04",
+    "doc_label": "gravitational_waves",
+    "question": "Ai là người đầu tiên dùng thuật ngữ 'gravitational wave' và vào năm nào?",
+    "expected_page": 3,
+    "expected_keyword": "Poincar"
+  },
+  {
+    "id": "nb_gw_05",
+    "doc_label": "gravitational_waves",
+    "question": "Hulse và Taylor nhận giải Nobel Vật lý năm nào nhờ xác nhận gián tiếp sóng hấp dẫn?",
+    "expected_page": 5,
+    "expected_keyword": "1993"
+  },
+  {
+    "id": "nb_gw_06",
+    "doc_label": "gravitational_waves",
+    "question": "Theo định lý diện tích của Hawking, giới hạn lý thuyết tối đa của khối lượng chuyển hóa thành sóng hấp dẫn khi hai lỗ đen khối lượng bằng nhau sáp nhập là khoảng bao nhiêu phần trăm?",
+    "expected_page": 5,
+    "expected_keyword": "29%"
+  },
+  {
+    "id": "nb_gw_07",
+    "doc_label": "gravitational_waves",
+    "question": "Ai đảm nhận vai trò lãnh đạo dự án LIGO vào năm 1994?",
+    "expected_page": 6,
+    "expected_keyword": "Barry Barish"
+  },
+  {
+    "id": "nb_gw_08",
+    "doc_label": "gravitational_waves",
+    "question": "Hai đài quan trắc LIGO được xây dựng tại hai địa điểm nào ở Hoa Kỳ?",
+    "expected_page": 6,
+    "expected_keyword": "Livingston, Louisiana"
+  },
+  {
+    "id": "nb_gw_09",
+    "doc_label": "gravitational_waves",
+    "question": "Năm 2023, bằng chứng đầu tiên về nền sóng hấp dẫn tần số thấp được phát hiện thông qua phân tích tín hiệu từ loại nguồn nào?",
+    "expected_page": 7,
+    "expected_keyword": "millisecond pulsars"
+  },
+  {
+    "id": "nb_gw_10",
+    "doc_label": "gravitational_waves",
+    "question": "Công thức quadrupole nổi tiếng cho bức xạ hấp dẫn biểu diễn biến dạng metric hij tỉ lệ nghịch với đại lượng nào?",
+    "expected_page": 13,
+    "expected_keyword": "famous quadrupole"
+  },
+  {
+    "id": "nb_gw_11",
+    "doc_label": "gravitational_waves",
+    "question": "Tần số của sóng hấp dẫn phát ra từ một hệ đôi compact có quan hệ như thế nào với tần số quỹ đạo?",
+    "expected_page": 15,
+    "expected_keyword": "twice the orbital"
+  },
+  {
+    "id": "nb_gw_12",
+    "doc_label": "gravitational_waves",
+    "question": "Pretorius đạt được thành tựu gì vào năm 2005 liên quan đến sáp nhập lỗ đen?",
+    "expected_page": 6,
+    "expected_keyword": "Pretorius"
+  },
+  {
+    "id": "nb_galaxy_01",
+    "doc_label": "galaxy_morphology",
+    "question": "Mô hình lai bán giám sát được đề xuất trong bài báo để phân loại hình thái thiên hà có tên gọi là gì?",
+    "expected_page": 1,
+    "expected_keyword": "GC-SWGAN"
+  },
+  {
+    "id": "nb_galaxy_02",
+    "doc_label": "galaxy_morphology",
+    "question": "GC-SWGAN đạt độ chính xác phân loại trên 75% trên bộ dữ liệu nào khi chỉ dùng một phần năm số lượng mẫu có nhãn?",
+    "expected_page": 1,
+    "expected_keyword": "Galaxy10 DECaLS"
+  },
+  {
+    "id": "nb_galaxy_03",
+    "doc_label": "galaxy_morphology",
+    "question": "Trong trường hợp cực đoan chỉ có 10% dữ liệu được gán nhãn, GC-SWGAN vẫn đạt độ chính xác phân loại trên bao nhiêu phần trăm?",
+    "expected_page": 1,
+    "expected_keyword": "68%"
+  },
+  {
+    "id": "nb_galaxy_04",
+    "doc_label": "galaxy_morphology",
+    "question": "Bộ dữ liệu Galaxy10 DECaLS được phát triển bởi ai và phân chia hình thái thiên hà thành bao nhiêu lớp riêng biệt?",
+    "expected_page": 4,
+    "expected_keyword": "10 distinct"
+  },
+  {
+    "id": "nb_galaxy_05",
+    "doc_label": "galaxy_morphology",
+    "question": "Camera nào được DECaLS sử dụng, và nó được lắp đặt trên kính viễn vọng nào tại Chile?",
+    "expected_page": 5,
+    "expected_keyword": "Blanco telescope"
+  },
+  {
+    "id": "nb_galaxy_06",
+    "doc_label": "galaxy_morphology",
+    "question": "Trong sơ đồ phân chia dữ liệu Train test 91, bao nhiêu phần trăm dữ liệu được dùng để huấn luyện?",
+    "expected_page": 6,
+    "expected_keyword": "90%"
+  },
+  {
+    "id": "nb_galaxy_07",
+    "doc_label": "galaxy_morphology",
+    "question": "Trọng số wp cho thành phần gradient penalty trong hàm mất mát của discriminator được đặt giá trị bao nhiêu trong nghiên cứu này?",
+    "expected_page": 10,
+    "expected_keyword": "set to 10"
+  },
+  {
+    "id": "nb_galaxy_08",
+    "doc_label": "galaxy_morphology",
+    "question": "Các thí nghiệm GC-SWGAN được thực hiện trên nền tảng GPU nào, và mô hình được huấn luyện qua bao nhiêu vòng lặp?",
+    "expected_page": 11,
+    "expected_keyword": "NVIDIA L40S"
+  },
+  {
+    "id": "nb_galaxy_09",
+    "doc_label": "galaxy_morphology",
+    "question": "Lớp 'Round Smooth Galaxies' trong Galaxy10 DECaLS có bao nhiêu ảnh được gán nhãn, đây là lớp đông nhất hay ít nhất?",
+    "expected_page": 5,
+    "expected_keyword": "2,645"
+  },
+  {
+    "id": "nb_galaxy_10",
+    "doc_label": "galaxy_morphology",
+    "question": "Mô hình SGAN truyền thống được đề xuất bởi ai vào năm nào, theo bài báo?",
+    "expected_page": 7,
+    "expected_keyword": "Odena (2016)"
+  },
+  {
+    "id": "nb_exo_01",
+    "doc_label": "exoplanet_detection",
+    "question": "Phương pháp ExoMILD được áp dụng vào dữ liệu thu thập từ thiết bị quan sát nào?",
+    "expected_page": 1,
+    "expected_keyword": "VLT/SPHERE"
+  },
+  {
+    "id": "nb_exo_02",
+    "doc_label": "exoplanet_detection",
+    "question": "ExoMILD là viết tắt của cụm từ nào?",
+    "expected_page": 1,
+    "expected_keyword": "MIxture of Learnable Distributions"
+  },
+  {
+    "id": "nb_exo_03",
+    "doc_label": "exoplanet_detection",
+    "question": "Mạng nơ-ron fν dùng để lọc điểm số phát hiện trong mô hình được xây dựng theo kiến trúc nào?",
+    "expected_page": 2,
+    "expected_keyword": "U-Net"
+  },
+  {
+    "id": "nb_exo_04",
+    "doc_label": "exoplanet_detection",
+    "question": "Trong bảng so sánh điểm AUC chế độ multi-spectral (ASDI), phương pháp 'proposed' đạt giá trị AUC bao nhiêu?",
+    "expected_page": 4,
+    "expected_keyword": "0.762"
+  },
+  {
+    "id": "nb_exo_05",
+    "doc_label": "exoplanet_detection",
+    "question": "Thuật toán nào trong bảng so sánh sử dụng phép lấy trung vị theo thời gian (temporal median) để loại bỏ nhiễu speckle?",
+    "expected_page": 5,
+    "expected_keyword": "cADI"
+  },
+  {
+    "id": "nb_exo_06",
+    "doc_label": "exoplanet_detection",
+    "question": "Mô hình được huấn luyện trên bao nhiêu quan sát lưu trữ từ thiết bị SPHERE?",
+    "expected_page": 4,
+    "expected_keyword": "220 observations"
+  },
+  {
+    "id": "nb_exo_07",
+    "doc_label": "exoplanet_detection",
+    "question": "Chiến lược kết hợp nhiều quan sát được minh họa bằng việc tổng hợp bao nhiêu quan sát của ngôi sao nào?",
+    "expected_page": 5,
+    "expected_keyword": "HR 8799"
+  },
+  {
+    "id": "nb_exo_08",
+    "doc_label": "exoplanet_detection",
+    "question": "Các quan sát của sao HR 8799 dùng trong nghiên cứu được thu thập trong khoảng thời gian nào?",
+    "expected_page": 5,
+    "expected_keyword": "2014 and 2022"
+  },
+  {
+    "id": "nb_exo_09",
+    "doc_label": "exoplanet_detection",
+    "question": "Dữ liệu 4D y của thiết bị SPHERE gồm bao nhiêu kênh phổ (spectral channels)?",
+    "expected_page": 4,
+    "expected_keyword": "L = 2 spectral channels"
+  }
+]

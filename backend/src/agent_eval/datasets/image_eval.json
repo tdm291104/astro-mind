@@ -1,0 +1,80 @@
+[
+  {
+    "id": "img01", "nasa_id": "SDSS DR16 cutout, ra=202.4696 dec=47.1953",
+    "image_url": "http://skyserver.sdss.org/dr16/SkyServerWS/ImgCutout/getjpeg?ra=202.4696&dec=47.1953&scale=0.7&width=300&height=300",
+    "expected_class_name": "galaxy", "expected_sub_type": "spiral",
+    "notes": "M51 (NGC 5194, Whirlpool Galaxy) — SDSS imagery, same survey domain as the Galaxy Zoo/SDSS-trained morphology CNN (Hubble imagery is out-of-domain for that model)"
+  },
+  {
+    "id": "img02", "nasa_id": "SDSS DR16 cutout, ra=187.7059 dec=12.3911",
+    "image_url": "http://skyserver.sdss.org/dr16/SkyServerWS/ImgCutout/getjpeg?ra=187.7059&dec=12.3911&scale=0.7&width=300&height=300",
+    "expected_class_name": "galaxy", "expected_sub_type": "elliptical",
+    "notes": "M87 (NGC 4486, giant elliptical in Virgo) — SDSS imagery, same survey domain as the Galaxy Zoo/SDSS-trained morphology CNN"
+  },
+  {
+    "id": "img03", "nasa_id": "PIA21073",
+    "image_url": "https://images-assets.nasa.gov/image/PIA21073/PIA21073~medium.jpg",
+    "expected_class_name": "nebula", "expected_sub_type": "emission nebula",
+    "notes": "Ionized Carbon Atoms in Orion"
+  },
+  {
+    "id": "img04", "nasa_id": "GSFC_20171208_Archive_e001465",
+    "image_url": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001465/GSFC_20171208_Archive_e001465~orig.jpg",
+    "expected_class_name": "nebula", "expected_sub_type": "planetary nebula",
+    "notes": "Planetary Nebula"
+  },
+  {
+    "id": "img05", "nasa_id": "PIA21376",
+    "image_url": "https://images-assets.nasa.gov/image/PIA21376/PIA21376~orig.jpg",
+    "expected_class_name": "planet", "expected_sub_type": "jupiter",
+    "notes": "Crescent Jupiter with the Great Red Spot"
+  },
+  {
+    "id": "img06", "nasa_id": "GSFC_20171208_Archive_e001017",
+    "image_url": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001017/GSFC_20171208_Archive_e001017~medium.jpg",
+    "expected_class_name": "star_cluster", "expected_sub_type": "globular cluster",
+    "notes": "Hubble Revisits a Globular Cluster's Age"
+  },
+  {
+    "id": "img07", "nasa_id": "PIA07878",
+    "image_url": "https://images-assets.nasa.gov/image/PIA07878/PIA07878~small.jpg",
+    "expected_class_name": "star_cluster", "expected_sub_type": "open cluster",
+    "notes": "Wild Duck Cluster (M11) — dense field of point-like stars, no surrounding nebulosity (replaces the WISE Pleiades image, whose infrared reflection-nebula glow visually dominated over the cluster itself and was being legitimately misread as nebula)"
+  },
+  {
+    "id": "img08", "nasa_id": "PIA18153",
+    "image_url": "https://images-assets.nasa.gov/image/PIA18153/PIA18153~small.jpg",
+    "expected_class_name": "comet", "expected_sub_type": "",
+    "notes": "Comet ISON — Hubble image showing a clear, well-defined tail (replaces a 67P surface close-up that showed no tail/coma at all, making it visually indistinguishable from an asteroid)"
+  },
+  {
+    "id": "img09", "nasa_id": "2019-02-25_regolith_image_compilation",
+    "image_url": "https://images-assets.nasa.gov/image/2019-02-25_regolith_image_compilation/2019-02-25_regolith_image_compilation~medium.jpg",
+    "expected_class_name": "asteroid", "expected_sub_type": "",
+    "notes": "Bennu Northern Hemisphere Close Up"
+  },
+  {
+    "id": "img10", "nasa_id": "as16-116-18649",
+    "image_url": "https://images-assets.nasa.gov/image/as16-116-18649/as16-116-18649~medium.jpg",
+    "expected_class_name": "moon", "expected_sub_type": "",
+    "notes": "Apollo 16 — North Ray crater lunar surface"
+  },
+  {
+    "id": "img11", "nasa_id": "PIA06193",
+    "image_url": "https://images-assets.nasa.gov/image/PIA06193/PIA06193~medium.jpg",
+    "expected_class_name": "planet", "expected_sub_type": "saturn",
+    "notes": "The Greatest Saturn Portrait ...Yet — Cassini natural color global mosaic of Saturn and its rings (Oct 2004)"
+  },
+  {
+    "id": "img12", "nasa_id": "PIA00003",
+    "image_url": "https://images-assets.nasa.gov/image/PIA00003/PIA00003~medium.jpg",
+    "expected_class_name": "planet", "expected_sub_type": "mars",
+    "notes": "Valles Marineris Hemisphere — Viking Orbiter mosaic covering nearly a full hemisphere of Mars"
+  },
+  {
+    "id": "img13", "nasa_id": "GSFC_20171208_Archive_e000214",
+    "image_url": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000214/GSFC_20171208_Archive_e000214~small.jpg",
+    "expected_class_name": "star", "expected_sub_type": "",
+    "notes": "Hubble's Best Image of Alpha Centauri A and B — two unambiguous star portraits (replaces the Aldebaran-behind-Saturn's-rings image, whose frame was visually dominated by Saturn's rings rather than the star)"
+  }
+]

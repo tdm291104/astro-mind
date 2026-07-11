@@ -1,0 +1,11 @@
+import { Suspense } from "react";
+
+import Workspace from "@/components/workspace/Workspace";
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={null}>
+      <Workspace />
+    </Suspense>
+  );
+}

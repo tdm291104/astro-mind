@@ -1,0 +1,81 @@
+[project]
+name = "astromind"
+version = "0.1.0"
+description = "Multi AI Agent for astronomy — agentic chat, image analysis, RAG, trend reports"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # Web framework
+    "fastapi>=0.136.3",
+    "uvicorn>=0.47.0",
+    "python-multipart>=0.0.29",
+    # AI / LLM
+    "anthropic>=0.40",
+    "tensorflow>=2.21,<3",          # GalaxyPredictor CNN (galaxy morphology)
+    "sentence-transformers>=3.0",   # multilingual-e5-small embeddings
+    "torch",                         # CPU-only build (see tool.uv.sources) — avoid bundled CUDA/triton
+    # Database
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "chromadb>=0.5",
+    # Document parsing
+    "pymupdf>=1.24",                # PDF (imported as fitz)
+    "python-docx>=1.2.0",          # DOCX (imported as docx)
+    "astropy>=7.2.0",              # FITS files
+    "beautifulsoup4>=4.14.3",      # HTML/URL ingestion (imported as bs4)
+    # HTTP client
+    "httpx>=0.28.1",
+    "feedparser>=6.0.12",          # arXiv Atom feed
+    # Data / plotting
+    "numpy>=1.26,<3",
+    "matplotlib>=3.10.9",          # FITS preview + trend charts
+    "pillow>=10.0",                # Image preprocessing (imported as PIL)
+    "tiktoken>=0.7",               # Token counting
+    "weasyprint>=62",              # HTML -> PDF for report export
+    "markdown>=3.7",               # Markdown -> HTML for PDF rendering
+    # Auth
+    "pyjwt>=2.8",
+    "bcrypt>=4.1",
+    "email-validator>=2.0",
+    # Config
+    "pydantic-settings>=2.4",
+]
+
+[tool.uv.sources]
+# sentence-transformers pulls torch with bundled CUDA/triton (~4.5GB of unused
+# GPU deps in our CPU-only Docker image) by default. Use the CPU-only build.
+torch = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/core", "src/persistence", "src/ingestion", "src/agents", "src/sources", "src/trends", "src/auth", "src/api", "src/reports", "src/agent_eval"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "reportlab>=4",
+    "pytest-asyncio>=1.4.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Argument", "typer.Option", "fastapi.Depends", "fastapi.File", "fastapi.Form"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
+asyncio_mode = "auto"

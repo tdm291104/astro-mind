@@ -1,0 +1,22 @@
+[
+  {"id": "r01", "topic": "phát hiện và đo đạc sóng hấp dẫn", "report_type": "trending",
+   "required_sections": ["Tóm tắt Xu hướng", "Tổng quan", "Các hướng nghiên cứu chính", "Thành tựu và phát hiện tiêu biểu", "Phương pháp quan sát và nghiên cứu", "Thách thức và câu hỏi mở", "Dự báo Xu hướng Tương lai", "Kết luận và Gợi ý"]},
+  {"id": "r02", "topic": "sự hợp nhất của các hệ đôi lỗ đen", "report_type": "research",
+   "required_sections": ["Tổng quan", "Các hướng nghiên cứu chính", "Thành tựu và phát hiện tiêu biểu", "Bảng tóm tắt thành tựu", "Phương pháp quan sát và nghiên cứu", "Thách thức và câu hỏi mở", "Triển vọng tương lai", "Kết luận"]},
+  {"id": "r03", "topic": "phát hiện exoplanet bằng phương pháp chụp ảnh trực tiếp", "report_type": "research",
+   "required_sections": ["Tổng quan", "Các hướng nghiên cứu chính", "Thành tựu và phát hiện tiêu biểu", "Bảng tóm tắt thành tựu", "Phương pháp quan sát và nghiên cứu", "Thách thức và câu hỏi mở", "Triển vọng tương lai", "Kết luận"]},
+  {"id": "r04", "topic": "phân loại hình thái thiên hà bằng machine learning", "report_type": "research",
+   "required_sections": ["Tổng quan", "Các hướng nghiên cứu chính", "Thành tựu và phát hiện tiêu biểu", "Bảng tóm tắt thành tựu", "Phương pháp quan sát và nghiên cứu", "Thách thức và câu hỏi mở", "Triển vọng tương lai", "Kết luận"]},
+  {"id": "r05", "topic": "pulsar timing array và phông sóng hấp dẫn vũ trụ", "report_type": "trending",
+   "required_sections": ["Tóm tắt Xu hướng", "Tổng quan", "Các hướng nghiên cứu chính", "Thành tựu và phát hiện tiêu biểu", "Phương pháp quan sát và nghiên cứu", "Thách thức và câu hỏi mở", "Dự báo Xu hướng Tương lai", "Kết luận và Gợi ý"]},
+  {"id": "r06", "topic": "kính viễn vọng Roman Space Telescope và khảo sát exoplanet", "report_type": "trending",
+   "required_sections": ["Tóm tắt Xu hướng", "Tổng quan", "Các hướng nghiên cứu chính", "Thành tựu và phát hiện tiêu biểu", "Phương pháp quan sát và nghiên cứu", "Thách thức và câu hỏi mở", "Dự báo Xu hướng Tương lai", "Kết luận và Gợi ý"]},
+  {"id": "r07", "topic": "lỗ đen nguyên thủy như một ứng cử viên vật chất tối", "report_type": "research",
+   "required_sections": ["Tổng quan", "Các hướng nghiên cứu chính", "Thành tựu và phát hiện tiêu biểu", "Bảng tóm tắt thành tựu", "Phương pháp quan sát và nghiên cứu", "Thách thức và câu hỏi mở", "Triển vọng tương lai", "Kết luận"]},
+  {"id": "r08", "topic": "thiên văn đa tín hiệu (multi-messenger astronomy)", "report_type": "research",
+   "required_sections": ["Tổng quan", "Các hướng nghiên cứu chính", "Thành tựu và phát hiện tiêu biểu", "Bảng tóm tắt thành tựu", "Phương pháp quan sát và nghiên cứu", "Thách thức và câu hỏi mở", "Triển vọng tương lai", "Kết luận"]},
+  {"id": "r09", "topic": "xu hướng nghiên cứu lỗ đen siêu khối lượng đôi", "report_type": "trending",
+   "required_sections": ["Tóm tắt Xu hướng", "Tổng quan", "Các hướng nghiên cứu chính", "Thành tựu và phát hiện tiêu biểu", "Phương pháp quan sát và nghiên cứu", "Thách thức và câu hỏi mở", "Dự báo Xu hướng Tương lai", "Kết luận và Gợi ý"]},
+  {"id": "r10", "topic": "quang phổ khí quyển hành tinh đá ngoài hệ Mặt Trời", "report_type": "research",
+   "required_sections": ["Tổng quan", "Các hướng nghiên cứu chính", "Thành tựu và phát hiện tiêu biểu", "Bảng tóm tắt thành tựu", "Phương pháp quan sát và nghiên cứu", "Thách thức và câu hỏi mở", "Triển vọng tương lai", "Kết luận"]}
+]
