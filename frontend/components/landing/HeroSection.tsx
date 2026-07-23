@@ -1,6 +1,11 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
+
 export function HeroSection() {
+  const { t } = useTranslation();
+  const hero = t("landing").hero;
+
   return (
     <section
       style={{
@@ -61,7 +66,7 @@ export function HeroSection() {
             display: "inline-block",
           }}
         />
-        Nền Tảng AI Đa Tác Tử
+        {hero.tag}
       </div>
 
       <h1
@@ -78,8 +83,8 @@ export function HeroSection() {
           color: "var(--ld-text-primary)",
         }}
       >
-        Đội Nghiên Cứu AI của Bạn{" "}
-        <span style={{ color: "var(--ld-accent)" }}>cho Vũ Trụ</span>
+        {hero.title}{" "}
+        <span style={{ color: "var(--ld-accent)" }}>{hero.titleAccent}</span>
       </h1>
 
       <p
@@ -94,8 +99,7 @@ export function HeroSection() {
           zIndex: 1,
         }}
       >
-        Astro Mind triển khai các tác tử AI chuyên biệt để tìm kiếm, phân tích
-        và tổng hợp nghiên cứu thiên văn học — để bạn tập trung vào khám phá.
+        {hero.subtitle}
       </p>
 
       <div
@@ -136,7 +140,7 @@ export function HeroSection() {
             el.style.boxShadow = "";
           }}
         >
-          Khám Phá Ngay
+          {hero.cta1}
         </a>
         <a
           href="#how-it-works"
@@ -165,7 +169,7 @@ export function HeroSection() {
             el.style.background = "transparent";
           }}
         >
-          Xem Cách Hoạt Động
+          {hero.cta2}
         </a>
       </div>
 
@@ -192,7 +196,7 @@ export function HeroSection() {
             opacity="0.7"
           />
         </svg>
-        Được tin dùng bởi 2.000+ nhà nghiên cứu thiên văn học
+        {hero.socialProof}
       </div>
     </section>
   );

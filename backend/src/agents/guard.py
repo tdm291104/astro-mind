@@ -41,6 +41,27 @@ _REJECT_MESSAGE = (
     "sao chổi hay bất kỳ điều gì về vũ trụ nhé!"
 )
 
+_REJECT_MESSAGE_EN = (
+    "This question is outside my scope. AstroMind specializes in astronomy, "
+    "astrophysics, and space science — ask me about black holes, galaxies, planets, "
+    "comets, or anything about the universe!"
+)
+
+_REJECT_MESSAGE_JA = (
+    "この質問は私の専門範囲外です。AstroMindは天文学、天体物理学、宇宙科学を専門としています — "
+    "ブラックホール、銀河、惑星、彗星など、宇宙に関することを何でも聞いてください！"
+)
+
+_REJECT_MESSAGES: dict[str, str] = {
+    "vi": _REJECT_MESSAGE,
+    "en": _REJECT_MESSAGE_EN,
+    "ja": _REJECT_MESSAGE_JA,
+}
+
+
+def get_reject_message(locale: str | None = None) -> str:
+    return _REJECT_MESSAGES.get(locale or "vi", _REJECT_MESSAGE)
+
 _DOCUMENT_SYSTEM = (
     "You are a content classifier for AstroMind, an astronomy assistant. "
     "Decide whether the following document excerpt is relevant to AstroMind's domain: "
@@ -54,6 +75,26 @@ _REJECT_DOCUMENT_MESSAGE = (
     "Tài liệu này không thuộc lĩnh vực thiên văn học. "
     "AstroMind hỗ trợ tài liệu về thiên văn học, vật lý thiên văn và khoa học vũ trụ."
 )
+
+_REJECT_DOCUMENT_MESSAGE_EN = (
+    "This document is not related to astronomy. "
+    "AstroMind supports documents about astronomy, astrophysics, and space science."
+)
+
+_REJECT_DOCUMENT_MESSAGE_JA = (
+    "このドキュメントは天文学の分野に属していません。"
+    "AstroMindは天文学、天体物理学、宇宙科学に関するドキュメントをサポートしています。"
+)
+
+_REJECT_DOCUMENT_MESSAGES: dict[str, str] = {
+    "vi": _REJECT_DOCUMENT_MESSAGE,
+    "en": _REJECT_DOCUMENT_MESSAGE_EN,
+    "ja": _REJECT_DOCUMENT_MESSAGE_JA,
+}
+
+
+def get_reject_document_message(locale: str | None = None) -> str:
+    return _REJECT_DOCUMENT_MESSAGES.get(locale or "vi", _REJECT_DOCUMENT_MESSAGE)
 
 
 def build_classify_content(

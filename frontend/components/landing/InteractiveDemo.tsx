@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useReveal } from "./useReveal";
 
 interface DemoMessage {
@@ -17,24 +18,6 @@ interface ConversationStep {
   data?: { label: string; value: string }[] | null;
   sources?: string | null;
 }
-
-const DEMO_CONVERSATION: ConversationStep[] = [
-  { role: "user", text: "Chúng ta biết gì về khả năng có sự sống trên Europa?" },
-  { role: "agent-status", text: "Search Agent đang tìm kiếm trong cơ sở dữ liệu thiên văn..." },
-  { role: "agent-status", text: "Notebook Agent đang xử lý 12 bài báo liên quan..." },
-  { role: "agent-status", text: "Chat Agent đang soạn câu trả lời..." },
-  {
-    role: "assistant",
-    text: "Europa là một trong những ứng cử viên hứa hẹn nhất cho sự sống ngoài Trái Đất trong hệ mặt trời. Đây là những gì nghiên cứu hiện tại cho chúng ta biết:",
-    data: [
-      { label: "Độ sâu đại dương ngầm", value: "60 – 150 km" },
-      { label: "Thể tích đại dương", value: "2 – 3× đại dương Trái Đất" },
-      { label: "Nhiệt độ bề mặt", value: "−160°C (xích đạo)" },
-      { label: "Hợp chất chính", value: "NaCl, MgSO₄, O₂" },
-    ],
-    sources: "Pappalardo et al. (2025), NASA Europa Clipper preliminary data, Trumbo & Brown (2024)",
-  },
-];
 
 function wait(ms: number) {
   return new Promise<void>((r) => setTimeout(r, ms));
@@ -153,11 +136,26 @@ export function InteractiveDemo() {
   const [agentStatus, setAgentStatus] = useState("");
   const [hasPlayed, setHasPlayed] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
+  const demo = t("landing").demo;
+
+  const DEMO_CONVERSATION: ConversationStep[] = [
+    { role: "user", text: demo.userMsg },
+    { role: "agent-status", text: demo.agentStatuses[0] },
+    { role: "agent-status", text: demo.agentStatuses[1] },
+    { role: "agent-status", text: demo.agentStatuses[2] },
+    {
+      role: "assistant",
+      text: demo.assistantText,
+      data: demo.dataLabels.map((label, i) => ({ label, value: demo.dataValues[i] })),
+      sources: demo.sources,
+    },
+  ];
 
   useEffect(() => {
     if (vis && !hasPlayed) {
       setHasPlayed(true);
-      playDemo();
+      void playDemo();
     }
   }, [vis]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -193,8 +191,8 @@ export function InteractiveDemo() {
     setInputVal("");
     setMessages((prev) => [...prev, { role: "user", text: q }]);
     setIsTyping(true);
-    setAgentStatus("Search Agent đang tìm kiếm...");
-    setTimeout(() => setAgentStatus("Chat Agent đang soạn câu trả lời..."), 1200);
+    setAgentStatus(demo.searchingStatus);
+    setTimeout(() => setAgentStatus(demo.composingStatus), 1200);
     setTimeout(() => {
       setIsTyping(false);
       setAgentStatus("");
@@ -202,7 +200,7 @@ export function InteractiveDemo() {
         ...prev,
         {
           role: "assistant",
-          text: `Câu hỏi hay về "${q}". Trong phiên đầy đủ, các tác tử AI sẽ tìm kiếm cơ sở dữ liệu thiên văn, phân tích bài báo liên quan và tổng hợp câu trả lời kèm trích dẫn. Đăng ký để trải nghiệm đầy đủ!`,
+          text: `${demo.replyPrefix} "${q}". ${demo.replySuffix}`,
           data: null,
           sources: null,
         },
@@ -238,7 +236,7 @@ export function InteractiveDemo() {
               marginBottom: 14,
             }}
           >
-            Thử Ngay
+            {demo.sectionEyebrow}
           </p>
           <h2
             style={{
@@ -248,7 +246,7 @@ export function InteractiveDemo() {
               marginBottom: 16,
             }}
           >
-            Xem Các Tác Tử Hoạt Động
+            {demo.sectionTitle}
           </h2>
           <p
             style={{
@@ -258,8 +256,7 @@ export function InteractiveDemo() {
               margin: "0 auto",
             }}
           >
-            Xem cách các tác tử AI phối hợp để trả lời một câu hỏi nghiên cứu
-            duy nhất.
+            {demo.sectionSubtitle}
           </p>
         </div>
 
@@ -300,10 +297,10 @@ export function InteractiveDemo() {
                 color: "var(--ld-text-dim)",
               }}
             >
-              Astro Mind — Phiên Nghiên Cứu
+              {demo.sessionTitle}
             </span>
             <button
-              onClick={playDemo}
+              onClick={() => { void playDemo(); }}
               style={{
                 fontFamily: "var(--ld-font-mono)",
                 fontSize: 10,
@@ -315,7 +312,7 @@ export function InteractiveDemo() {
                 cursor: "pointer",
               }}
             >
-              Phát lại
+              {demo.replay}
             </button>
           </div>
 
@@ -388,7 +385,7 @@ export function InteractiveDemo() {
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Hỏi về bất kỳ chủ đề thiên văn nào..."
+              placeholder={demo.inputPlaceholder}
               style={{
                 flex: 1,
                 fontFamily: "var(--ld-font-sans)",
@@ -424,7 +421,7 @@ export function InteractiveDemo() {
                 opacity: inputVal.trim() ? 1 : 0.5,
               }}
             >
-              Gửi
+              {demo.send}
             </button>
           </div>
         </div>

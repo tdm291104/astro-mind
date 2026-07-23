@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CitationPanel from "@/components/chat/CitationPanel";
 import type { ArxivPaper, Citation, WebSource } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 export interface ExtractedImage {
   src: string;
@@ -32,32 +33,96 @@ export function AssistantAvatar() {
   );
 }
 
-export function ImageStrip({ images }: { images: ExtractedImage[] }) {
-  if (images.length === 0) return null;
+function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
   return (
-    <div style={{ marginTop: 4 }}>
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "rgba(0,0,0,0.88)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: "zoom-out",
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: "90vw", maxHeight: "88vh",
+          borderRadius: 10,
+          border: "1px solid rgba(255,255,255,0.12)",
+          objectFit: "contain",
+          cursor: "default",
+        }}
+      />
+      <button
+        onClick={onClose}
+        style={{
+          position: "fixed", top: 20, right: 24,
+          background: "rgba(255,255,255,0.1)",
+          border: "1px solid rgba(255,255,255,0.2)",
+          borderRadius: 8, color: "#fff",
+          fontSize: 18, width: 36, height: 36,
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+      >
+        ✕
+      </button>
       <div style={{
-        fontFamily: "var(--font-jetbrains-mono)", fontSize: 10,
-        color: "#6b7a99", marginBottom: 8, letterSpacing: "0.06em",
+        position: "fixed", bottom: 20,
+        fontFamily: "var(--font-jetbrains-mono)", fontSize: 11,
+        color: "rgba(255,255,255,0.5)",
+        maxWidth: "80vw", textAlign: "center",
       }}>
-        Hình ảnh
-      </div>
-      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
-        {images.slice(0, 6).map((img, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={i}
-            src={img.src}
-            alt={img.alt}
-            style={{
-              height: 110, width: "auto", maxWidth: 180,
-              borderRadius: 8, objectFit: "cover",
-              flexShrink: 0, border: "1px solid rgba(255,255,255,0.07)",
-            }}
-          />
-        ))}
+        {alt}
       </div>
     </div>
+  );
+}
+
+export function ImageStrip({ images }: { images: ExtractedImage[] }) {
+  const { t } = useTranslation();
+  const mb = t("messageBody");
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
+  if (images.length === 0) return null;
+  return (
+    <>
+      <div style={{ marginTop: 4 }}>
+        <div style={{
+          fontFamily: "var(--font-jetbrains-mono)", fontSize: 10,
+          color: "#6b7a99", marginBottom: 8, letterSpacing: "0.06em",
+        }}>
+          {mb.images}
+        </div>
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+          {images.slice(0, 6).map((img, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={i}
+              src={img.src}
+              alt={img.alt}
+              onClick={() => setLightbox({ src: img.src, alt: img.alt })}
+              style={{
+                height: 110, width: "auto", maxWidth: 180,
+                borderRadius: 8, objectFit: "cover",
+                flexShrink: 0, border: "1px solid rgba(255,255,255,0.07)",
+                cursor: "zoom-in",
+              }}
+            />
+          ))}
+        </div>
+      </div>
+      {lightbox && (
+        <ImageLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />
+      )}
+    </>
   );
 }
 
@@ -81,6 +146,8 @@ export function MessagePills({ citations, arxivPapers, webSources }: {
   arxivPapers?: ArxivPaper[];
   webSources?: WebSource[];
 }) {
+  const { t } = useTranslation();
+  const mb = t("messageBody");
   const [open, setOpen] = useState<PanelType | null>(null);
 
   const toggle = (panel: PanelType) =>
@@ -98,17 +165,17 @@ export function MessagePills({ citations, arxivPapers, webSources }: {
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {hasCitations && (
           <button type="button" onClick={() => toggle("citations")} style={pillStyle(open === "citations")}>
-            Dẫn chứng [{citations!.length}]
+            {mb.citations} [{citations!.length}]
           </button>
         )}
         {hasPapers && (
           <button type="button" onClick={() => toggle("papers")} style={pillStyle(open === "papers")}>
-            Papers [{arxivPapers!.length}]
+            {mb.papers} [{arxivPapers!.length}]
           </button>
         )}
         {hasWeb && (
           <button type="button" onClick={() => toggle("web")} style={pillStyle(open === "web")}>
-            Nguồn web [{webSources!.length}]
+            {mb.webSources} [{webSources!.length}]
           </button>
         )}
       </div>
@@ -132,9 +199,9 @@ export function MessagePills({ citations, arxivPapers, webSources }: {
                 color: "#c9a55c", marginBottom: 3,
               }}>
                 [{c.citation_id}] {c.doc_name}
-                {c.page != null ? ` — Trang ${c.page}` : ""}
+                {c.page != null ? ` — ${mb.page} ${c.page}` : ""}
                 {c.source === "analysis" && (
-                  <span style={{ marginLeft: 6, color: "#a78bfa" }}>· Từ phân tích sâu</span>
+                  <span style={{ marginLeft: 6, color: "#a78bfa" }}>· {mb.fromAnalysis}</span>
                 )}
               </div>
               {c.excerpt && (
@@ -218,6 +285,8 @@ export function ActionsSection({
   onOpenViewer?: (v: { type: "report" | "doc"; id: string }) => void;
   onDiscoveryReport: () => void;
 }) {
+  const { t } = useTranslation();
+  const mb = t("messageBody");
   const showReport = route === "report" && !!reportId;
   const showDiscovery = isLast && !isStreaming && suggestedAction?.type === "discovery_report";
   if (!showReport && !showDiscovery) return null;
@@ -235,7 +304,7 @@ export function ActionsSection({
               display: "inline-block", width: 7, height: 7, borderRadius: "50%",
               background: "#c9a55c", animation: "pulse 1.2s infinite",
             }} />
-            Đang tạo báo cáo...
+            {mb.generatingReport}
           </div>
         ) : onOpenViewer ? (
           <button
@@ -250,7 +319,7 @@ export function ActionsSection({
             onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(201,165,92,0.08)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
           >
-            Mở báo cáo →
+            {mb.openReport}
           </button>
         ) : null
       )}
@@ -267,7 +336,7 @@ export function ActionsSection({
           onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(201,165,92,0.14)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(201,165,92,0.06)"; }}
         >
-          ✨ Tạo báo cáo khám phá từ phiên này
+          {mb.createDiscovery}
         </button>
       )}
     </div>

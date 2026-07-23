@@ -23,7 +23,10 @@ def format_apod(data: dict) -> str:
     if explanation:
         lines.append(explanation)
     if link:
-        lines.append(f"🔗 {link}")
+        if media_type == "image":
+            lines.append(f"![{title}]({link})")
+        else:
+            lines.append(f"🔗 {link}")
     copyright_ = data.get("copyright")
     if copyright_:
         lines.append(f"© {copyright_.strip()}")

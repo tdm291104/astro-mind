@@ -2,11 +2,12 @@ ORCHESTRATOR_TOOLS = [
     {
         "name": "analyze_astronomy_image",
         "description": (
-            "Phân tích ảnh thiên văn mà user đã gửi kèm bằng Claude Vision. "
+            "Phân tích ảnh thiên văn bằng Claude Vision + CNN. "
             "Trả về danh sách thiên thể nhận dạng được (class, sub_type, confidence, description).\n"
-            "QUAN TRỌNG: Gọi tool này TRƯỚC TIÊN khi user gửi kèm ảnh.\n"
-            "Nếu có thiên thể được nhận ra → dùng call_search_agent để tìm thêm thông tin.\n"
-            "Nếu không nhận ra thiên thể nào → hỏi user mô tả thêm về ảnh."
+            "Dùng khi: (1) user gửi kèm ảnh — GỌIL NGAY TRƯỚC TIÊN; "
+            "(2) user muốn phân tích ảnh từ kết quả search trước đó — truyền image_url từ ảnh NASA/APOD.\n"
+            "Nếu nhận ra thiên thể → dùng call_search_agent để tìm thêm thông tin.\n"
+            "Nếu không nhận ra → hỏi user mô tả thêm."
         ),
         "input_schema": {
             "type": "object",
@@ -14,7 +15,15 @@ ORCHESTRATOR_TOOLS = [
                 "question": {
                     "type": "string",
                     "description": "Câu hỏi cụ thể của user về ảnh (tuỳ chọn)",
-                }
+                },
+                "image_url": {
+                    "type": "string",
+                    "description": (
+                        "URL ảnh từ kết quả search (NASA Images, APOD...). "
+                        "Dùng khi user muốn phân tích ảnh đã được trả về trong lượt search trước. "
+                        "Bỏ qua nếu user đang gửi ảnh trực tiếp."
+                    ),
+                },
             },
             "required": [],
         },

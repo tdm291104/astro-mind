@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { InterestLines, TimelineArea, TopicsBubble } from "@/components/trends/charts";
-import { getReport, type DiscoveryImage, type ReportDetail } from "@/lib/api";
+import { getReport, type DiscoveryImage, type ReportDetail, type SearchImage } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 function parseSections(md: string): { title: string; body: string }[] {
   const result: { title: string; body: string }[] = [];
@@ -87,8 +88,23 @@ const _badgeStyle = {
   fontFamily: "var(--font-jetbrains-mono)",
 } as const;
 
-function DiscoveryImagesCard({ images }: { images: DiscoveryImage[] }) {
+function DiscoveryImagesCard({ images, discoveryBadge, discoveryTitle, morphologyNote }: {
+  images: DiscoveryImage[];
+  discoveryBadge: string;
+  discoveryTitle: string;
+  morphologyNote: string;
+}) {
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const closeLightbox = useCallback(() => setLightboxSrc(null), []);
+  useEffect(() => {
+    if (!lightboxSrc) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeLightbox(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightboxSrc, closeLightbox]);
+
   return (
+    <>
     <div
       style={{
         background: "rgba(255,255,255,0.02)",
@@ -109,7 +125,7 @@ function DiscoveryImagesCard({ images }: { images: DiscoveryImage[] }) {
           marginBottom: 8,
         }}
       >
-        ◈ PHÂN TÍCH CHI TIẾT
+        {discoveryBadge}
       </span>
 
       <div
@@ -132,7 +148,7 @@ function DiscoveryImagesCard({ images }: { images: DiscoveryImage[] }) {
           marginBottom: 16,
         }}
       >
-        Phân tích Chi tiết Thiên thể
+        {discoveryTitle}
       </span>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -142,7 +158,8 @@ function DiscoveryImagesCard({ images }: { images: DiscoveryImage[] }) {
               <img
                 src={`/api${img.image_url}`}
                 alt=""
-                style={{ width: 140, height: 140, objectFit: "cover", borderRadius: 8, flexShrink: 0 }}
+                onClick={() => setLightboxSrc(`/api${img.image_url}`)}
+                style={{ width: 140, height: 140, objectFit: "cover", borderRadius: 8, flexShrink: 0, cursor: "zoom-in" }}
               />
             )}
             <div style={{ flex: 1, minWidth: 200 }}>
@@ -160,7 +177,7 @@ function DiscoveryImagesCard({ images }: { images: DiscoveryImage[] }) {
               ))}
               {img.morphology_context && (
                 <p style={{ color: "rgba(237,232,223,0.6)", fontSize: 12, lineHeight: 1.6, marginTop: 8 }}>
-                  ✓ Đã phân tích hình thái chi tiết bằng mô hình CNN (Galaxy Zoo) để xác định cấu trúc thiên hà.
+                  {morphologyNote}
                 </p>
               )}
             </div>
@@ -168,6 +185,37 @@ function DiscoveryImagesCard({ images }: { images: DiscoveryImage[] }) {
         ))}
       </div>
     </div>
+    {lightboxSrc && (
+      <div
+        onClick={closeLightbox}
+        style={{
+          position: "fixed", inset: 0, zIndex: 9999,
+          background: "rgba(0,0,0,0.88)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "zoom-out",
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={lightboxSrc}
+          alt=""
+          onClick={(e) => e.stopPropagation()}
+          style={{ maxWidth: "90vw", maxHeight: "88vh", borderRadius: 10, objectFit: "contain", cursor: "default" }}
+        />
+        <button
+          onClick={closeLightbox}
+          style={{
+            position: "fixed", top: 20, right: 24,
+            background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
+            borderRadius: 8, color: "#fff", fontSize: 18, width: 36, height: 36,
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          ✕
+        </button>
+      </div>
+    )}
+    </>
   );
 }
 
@@ -185,7 +233,123 @@ async function downloadReportPdf(id: string, title: string) {
   URL.revokeObjectURL(url);
 }
 
+function SearchImagesCard({ images }: { images: SearchImage[] }) {
+  const [lightbox, setLightbox] = useState<SearchImage | null>(null);
+  const closeLightbox = useCallback(() => setLightbox(null), []);
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeLightbox(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox, closeLightbox]);
+
+  if (!images.length) return null;
+  return (
+    <>
+      <div style={{
+        background: "rgba(255,255,255,0.02)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        borderRadius: 12,
+        padding: "24px 28px",
+      }}>
+        <span style={{
+          display: "block",
+          fontFamily: "var(--font-jetbrains-mono)",
+          fontSize: 10,
+          color: "#c9a55c",
+          opacity: 0.75,
+          letterSpacing: "0.15em",
+          marginBottom: 14,
+        }}>
+          NASA IMAGES
+        </span>
+        <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+          {images.map((img, i) => (
+            <div key={i} style={{ flexShrink: 0, width: 200 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={img.url}
+                alt={img.title}
+                onClick={() => setLightbox(img)}
+                style={{
+                  width: 200, height: 130,
+                  objectFit: "cover",
+                  borderRadius: 8,
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  display: "block",
+                  cursor: "zoom-in",
+                }}
+              />
+              <div style={{
+                marginTop: 6,
+                fontFamily: "var(--font-jetbrains-mono)",
+                fontSize: 10,
+                color: "#6b7a99",
+                lineHeight: 1.4,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}>
+                {img.title}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {lightbox && (
+        <div
+          onClick={closeLightbox}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.88)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "zoom-out",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox.url}
+            alt={lightbox.title}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "90vw", maxHeight: "88vh",
+              borderRadius: 10,
+              border: "1px solid rgba(255,255,255,0.12)",
+              objectFit: "contain",
+              cursor: "default",
+            }}
+          />
+          <button
+            onClick={closeLightbox}
+            style={{
+              position: "fixed", top: 20, right: 24,
+              background: "rgba(255,255,255,0.1)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: 8, color: "#fff",
+              fontSize: 18, width: 36, height: 36,
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            ✕
+          </button>
+          <div style={{
+            position: "fixed", bottom: 20,
+            fontFamily: "var(--font-jetbrains-mono)", fontSize: 11,
+            color: "rgba(255,255,255,0.5)",
+            maxWidth: "80vw", textAlign: "center",
+          }}>
+            {lightbox.title}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function ReportViewer({ id }: { id: string }) {
+  const { t } = useTranslation();
+  const rv = t("reportViewer");
+
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -193,16 +357,16 @@ export default function ReportViewer({ id }: { id: string }) {
   useEffect(() => {
     void getReport(id)
       .then(setReport)
-      .catch(() => setError("Không thể tải báo cáo"))
+      .catch(() => setError(rv.error))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, rv.error]);
 
   if (loading)
     return (
-      <div className="flex items-center justify-center py-12 text-ink-muted">Đang tải…</div>
+      <div className="flex items-center justify-center py-12 text-ink-muted">{rv.loading}</div>
     );
   if (error || !report)
-    return <p className="text-center text-ink-muted">{error ?? "Không thể tải báo cáo"}</p>;
+    return <p className="text-center text-ink-muted">{error ?? rv.error}</p>;
 
   const { payload } = report;
   const hasTopicRows = payload.topics.rows.length > 0;
@@ -216,21 +380,21 @@ export default function ReportViewer({ id }: { id: string }) {
   if (Object.keys(payload.interest.series).length > 0 || payload.interest.text) dataSources.push("Google Trends");
   if (payload.references?.some((r) => r.source === "web")) dataSources.push("Web");
 
-  const formattedDate = new Date(report.created_at).toLocaleDateString("vi-VN", {
+  const formattedDate = new Date(report.created_at).toLocaleDateString(rv.dateLocale, {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
   const reportTypeLabel =
     payload.report_type === "discovery"
-      ? "Báo cáo khám phá"
+      ? rv.typeDiscovery
       : payload.report_type === "trending"
-        ? "Báo cáo xu hướng"
+        ? rv.typeTrending
         : payload.report_type === "research"
-          ? "Nghiên cứu chuyên sâu"
+          ? rv.typeResearch
           : hasQuantData
-            ? "Báo cáo xu hướng"
-            : "Nghiên cứu chuyên sâu";
+            ? rv.typeTrending
+            : rv.typeResearch;
 
   const sections =
     payload.research_text
@@ -238,7 +402,7 @@ export default function ReportViewer({ id }: { id: string }) {
           const parsed = parseSections(payload.research_text);
           return parsed.length > 0
             ? parsed
-            : [{ title: "Nội dung", body: payload.research_text }];
+            : [{ title: rv.sectionContent, body: payload.research_text }];
         })()
       : [];
 
@@ -246,6 +410,7 @@ export default function ReportViewer({ id }: { id: string }) {
   const firstSection = isDiscovery ? sections[0] : undefined;
   const restSections = isDiscovery ? sections.slice(1) : sections;
   const discoveryImages = payload.discovery?.images ?? [];
+  const searchImages = (!isDiscovery && payload.search_images?.length) ? payload.search_images : [];
 
   return (
     <div style={{ maxWidth: 780, margin: "0 auto", padding: "0 4px" }}>
@@ -287,7 +452,7 @@ export default function ReportViewer({ id }: { id: string }) {
               position: "relative",
             }}
           >
-            ◈ ASTRO MIND · BÁO CÁO NGHIÊN CỨU
+            {rv.headerBadge}
           </span>
 
           {/* Title */}
@@ -362,7 +527,7 @@ export default function ReportViewer({ id }: { id: string }) {
               zIndex: 1,
             }}
           >
-            Xuất PDF
+            {rv.exportPdf}
           </button>
         </div>
 
@@ -370,7 +535,14 @@ export default function ReportViewer({ id }: { id: string }) {
         {firstSection && <SectionCard key="sec-0" title={firstSection.title} body={firstSection.body} index={0} />}
 
         {/* ── Discovery image analysis ────────────────────────────────── */}
-        {isDiscovery && discoveryImages.length > 0 && <DiscoveryImagesCard images={discoveryImages} />}
+        {isDiscovery && discoveryImages.length > 0 && (
+          <DiscoveryImagesCard
+            images={discoveryImages}
+            discoveryBadge={rv.discoveryBadge}
+            discoveryTitle={rv.discoveryTitle}
+            morphologyNote={rv.morphologyNote}
+          />
+        )}
 
         {restSections.map((sec, i) => (
           <SectionCard
@@ -380,6 +552,9 @@ export default function ReportViewer({ id }: { id: string }) {
             index={isDiscovery ? i + 1 : i}
           />
         ))}
+
+        {/* ── NASA Images (research/trending) ───────────────────────── */}
+        <SearchImagesCard images={searchImages} />
 
         {/* ── Quantitative data section ─────────────────────────────── */}
         {hasQuantData && (
@@ -404,7 +579,7 @@ export default function ReportViewer({ id }: { id: string }) {
                 marginBottom: 8,
               }}
             >
-              ◈ DỮ LIỆU ĐỊNH LƯỢNG
+              {rv.quantBadge}
             </span>
 
             {/* Gold divider */}
@@ -438,7 +613,7 @@ export default function ReportViewer({ id }: { id: string }) {
                       marginBottom: 16,
                     }}
                   >
-                    Chủ đề nghiên cứu (arXiv)
+                    {rv.topicsLabel}
                   </span>
                   <TopicsBubble rows={payload.topics.rows} />
                   {payload.topics.analysis && (
@@ -469,7 +644,7 @@ export default function ReportViewer({ id }: { id: string }) {
                       marginBottom: 16,
                     }}
                   >
-                    Dòng thời gian phát hiện
+                    {rv.timelineLabel}
                   </span>
                   <TimelineArea byMethod={payload.timeline.by_method} />
                   {payload.timeline.analysis && (
@@ -500,7 +675,7 @@ export default function ReportViewer({ id }: { id: string }) {
                       marginBottom: 16,
                     }}
                   >
-                    Mức độ quan tâm công chúng
+                    {rv.interestLabel}
                   </span>
                   {hasInterestData ? (
                     <>
@@ -537,7 +712,7 @@ export default function ReportViewer({ id }: { id: string }) {
                       marginBottom: 16,
                     }}
                   >
-                    Tác giả xuất hiện nhiều
+                    {rv.authorsLabel}
                   </span>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {payload.top_authors!.map((author) => (
@@ -586,7 +761,7 @@ export default function ReportViewer({ id }: { id: string }) {
                 marginBottom: 8,
               }}
             >
-              ◈ TÀI LIỆU THAM KHẢO
+              {rv.refBadge}
             </span>
 
             <div
@@ -610,7 +785,7 @@ export default function ReportViewer({ id }: { id: string }) {
                 marginBottom: 16,
               }}
             >
-              Tài liệu tham khảo
+              {rv.refTitle}
             </span>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -657,9 +832,9 @@ export default function ReportViewer({ id }: { id: string }) {
               opacity: 0.6,
             }}
           >
-            Generated by AstroMind AI — Dữ liệu cập nhật đến{" "}
-            {new Date(payload.generated_at).toLocaleString("vi-VN")}
-            {dataSources.length > 0 && <> · Nguồn dữ liệu: {dataSources.join(", ")}</>}
+            {rv.footerPrefix} — {rv.footerUpdated}{" "}
+            {new Date(payload.generated_at).toLocaleString(rv.dateLocale)}
+            {dataSources.length > 0 && <> · {rv.footerSources}: {dataSources.join(", ")}</>}
           </p>
         )}
       </div>

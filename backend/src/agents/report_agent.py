@@ -10,6 +10,8 @@ from persistence.rerank import Reranker
 from persistence.store import MetaStore
 from persistence.vector import VectorStore
 
+_LANG_MAP: dict[str, str] = {"vi": "tiếng Việt", "en": "English", "ja": "日本語"}
+
 _KEYWORD_SYSTEM = (
     "Extract 3-5 concise English astronomy keywords from the given topic, "
     "suitable for arXiv paper searches. "
@@ -48,7 +50,7 @@ Tóm tắt ngắn các điểm chính và tầm quan trọng của lĩnh vực.
 ---
 Lưu ý:
 - Không dùng emoji
-- Viết toàn bộ báo cáo (kể cả tiêu đề các phần) bằng ngôn ngữ của "Chủ đề" trong yêu cầu (mặc định tiếng Việt)
+- Viết toàn bộ báo cáo (kể cả tiêu đề các phần) bằng {language}
 - Dẫn số liệu cụ thể khi có (năm phát hiện, khoảng cách, năng lượng...)
 - Bảng thành tựu dùng cú pháp markdown chuẩn (hàng | --- |)
 - Độ dài: 1500-3000 từ"""
@@ -84,7 +86,7 @@ Tóm tắt điểm chính và hướng theo dõi tiếp theo dành cho người 
 ---
 Lưu ý:
 - Không dùng emoji
-- Viết toàn bộ báo cáo (kể cả tiêu đề các phần) bằng ngôn ngữ của "Chủ đề" trong yêu cầu (mặc định tiếng Việt)
+- Viết toàn bộ báo cáo (kể cả tiêu đề các phần) bằng {language}
 - Dẫn số liệu cụ thể khi có (số paper, % tăng trưởng, năm...)
 - Độ dài: 800-1500 từ"""
 
@@ -107,7 +109,7 @@ Tóm tắt insight chính và đề xuất câu hỏi mở hoặc hướng tìm 
 ---
 Lưu ý:
 - Không dùng emoji
-- Viết toàn bộ báo cáo bằng ngôn ngữ của tin nhắn người dùng trong yêu cầu (mặc định tiếng Việt)
+- Viết toàn bộ báo cáo bằng {language}
 - Không bịa số liệu hoặc chi tiết không có trong ngữ cảnh được cung cấp
 - Độ dài: 600-1200 từ"""
 
@@ -184,16 +186,17 @@ def _build_report_context(
 
 def build_research_report_request(
     topic: str, keywords: list[str], web_context: list[dict], papers: list[dict],
-    *, model: str, notebook_text: str = "", session_text: str = "",
+    *, model: str, notebook_text: str = "", session_text: str = "", locale: str = "vi",
 ) -> dict:
     """Build the Anthropic request params for a research-report write call.
     Reusable by both the live path and batch-eval code."""
     user_content = _build_report_context(
         topic, keywords, web_context, papers, notebook_text=notebook_text, session_text=session_text,
     )
+    lang = _LANG_MAP.get(locale, "tiếng Việt")
     return llm.build_request(
         [
-            {"role": "system", "content": _RESEARCH_REPORT_SYSTEM},
+            {"role": "system", "content": _RESEARCH_REPORT_SYSTEM.format(language=lang)},
             {"role": "user", "content": user_content},
         ],
         model=model,
@@ -204,7 +207,7 @@ def build_research_report_request(
 def build_trending_report_request(
     topic: str, keywords: list[str], web_context: list[dict], papers: list[dict],
     top_authors: list[dict] | None = None, *, model: str,
-    notebook_text: str = "", session_text: str = "",
+    notebook_text: str = "", session_text: str = "", locale: str = "vi",
 ) -> dict:
     """Build the Anthropic request params for a trending-report write call.
     Reusable by both the live path and batch-eval code."""
@@ -212,9 +215,10 @@ def build_trending_report_request(
         topic, keywords, web_context, papers, top_authors=top_authors,
         notebook_text=notebook_text, session_text=session_text,
     )
+    lang = _LANG_MAP.get(locale, "tiếng Việt")
     return llm.build_request(
         [
-            {"role": "system", "content": _TRENDING_REPORT_SYSTEM},
+            {"role": "system", "content": _TRENDING_REPORT_SYSTEM.format(language=lang)},
             {"role": "user", "content": user_content},
         ],
         model=model,
@@ -322,6 +326,7 @@ class ReportAgent:
     vector: VectorStore | None = None
     embedder: Embedder | None = None
     reranker: Reranker | None = None
+    locale: str = "vi"
 
     def _extract_keywords(self, topic: str) -> list[str]:
         if not self.api_key:
@@ -344,10 +349,25 @@ class ReportAgent:
         except Exception:
             return []
 
+    _ASTRO_PREFIXES = ("astro-ph", "physics.space-ph", "physics.geo-ph")
+
     def _fetch_arxiv_papers(self, keywords: list[str]) -> list[dict]:
         try:
             from sources.arxiv import fetch_arxiv
-            return fetch_arxiv(" ".join(keywords[:3]), max_results=7, timeout=8.0)
+            papers = fetch_arxiv(" ".join(keywords[:3]), max_results=14, timeout=8.0, sort_by="relevance")
+            # Pass 1: keep only astronomy-category papers
+            astro = [
+                p for p in papers
+                if any(c.startswith(self._ASTRO_PREFIXES) for c in p.get("categories", []))
+            ]
+            candidates = astro if astro else papers
+            # Pass 2: among astronomy papers, keep only those mentioning a topic keyword
+            topic_words = {w.lower() for kw in keywords[:3] for w in kw.split() if len(w) > 4}
+            filtered = [
+                p for p in candidates
+                if any(w in (p.get("title", "") + " " + p.get("summary", "")).lower() for w in topic_words)
+            ]
+            return (filtered if filtered else candidates)[:7]
         except Exception:
             return []
 
@@ -453,7 +473,7 @@ class ReportAgent:
     ) -> str:
         params = build_research_report_request(
             topic, keywords, web_context, papers, model=self.model,
-            notebook_text=notebook_text, session_text=session_text,
+            notebook_text=notebook_text, session_text=session_text, locale=self.locale,
         )
         return llm.call(params, api_key=self.api_key)
 
@@ -463,7 +483,7 @@ class ReportAgent:
     ) -> str:
         params = build_trending_report_request(
             topic, keywords, web_context, papers, top_authors, model=self.model,
-            notebook_text=notebook_text, session_text=session_text,
+            notebook_text=notebook_text, session_text=session_text, locale=self.locale,
         )
         return llm.call(params, api_key=self.api_key)
 
@@ -496,9 +516,10 @@ class ReportAgent:
         if context_parts:
             user_content += "\n\n" + "\n\n".join(context_parts)
 
+        lang = _LANG_MAP.get(self.locale, "tiếng Việt")
         return llm.complete(
             [
-                {"role": "system", "content": _DISCOVERY_REPORT_SYSTEM},
+                {"role": "system", "content": _DISCOVERY_REPORT_SYSTEM.format(language=lang)},
                 {"role": "user", "content": user_content},
             ],
             api_key=self.api_key,
@@ -589,13 +610,15 @@ class ReportAgent:
     def _generate_payload(
         self, topic: str, *, report_type: str = "research",
         doc_ids: list[str] | None = None, conversation_id: str | None = None,
+        pre_fetched_papers: list | None = None, pre_fetched_web: list | None = None,
+        search_images: list | None = None,
     ) -> dict:
         """Full computation: returns the final payload dict. No DB calls."""
         if report_type == "discovery":
             return self._generate_discovery_payload(topic, doc_ids=doc_ids, conversation_id=conversation_id)
 
         keywords = self._extract_keywords(topic)
-        web_context = self._fetch_web_context(topic)
+        web_context = pre_fetched_web if pre_fetched_web else self._fetch_web_context(topic)
         papers = self._fetch_arxiv_papers(keywords)
         notebook_text, notebook_citations = self._fetch_notebook_context(topic, doc_ids)
 
@@ -635,6 +658,7 @@ class ReportAgent:
             "top_authors": top_authors,
             "keywords": keywords,
             "discovery": None,
+            "search_images": search_images or [],
             "references": _build_references(web_context, papers, notebook_citations),
             "generated_at": datetime.now(UTC).isoformat(),
         }
@@ -642,6 +666,8 @@ class ReportAgent:
     def run_update(
         self, report_id: str, topic: str, *, report_type: str = "research",
         doc_ids: list[str] | None = None, conversation_id: str | None = None,
+        pre_fetched_papers: list | None = None, pre_fetched_web: list | None = None,
+        search_images: list | None = None,
     ) -> None:
         """Generate payload and update an existing pending report record. Used by background task."""
         if not self.store:
@@ -649,6 +675,8 @@ class ReportAgent:
         try:
             payload = self._generate_payload(
                 topic, report_type=report_type, doc_ids=doc_ids, conversation_id=conversation_id,
+                pre_fetched_papers=pre_fetched_papers, pre_fetched_web=pre_fetched_web,
+                search_images=search_images,
             )
         except Exception as exc:
             payload = {

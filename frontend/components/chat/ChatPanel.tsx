@@ -12,6 +12,7 @@ import { parseModeCommand } from "@/components/workspace/mode";
 import { ThinkingStep, type Step } from "@/components/workspace/ThinkingStep";
 import { getConversation, getReport, postAssistant, streamConverse, shareConversation, type DoneAgentEvent, type ActionAgentEvent, type Citation, type ArxivPaper, type WebSource, type DocumentMeta } from "@/lib/api";
 import { AssistantAvatar, ActionsSection, ImageStrip, MessagePills, extractImages } from "@/components/chat/MessageBody";
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 // eslint-disable-next-line @next/next/no-img-element
 const mdImg = ({ src, alt }: { src?: string; alt?: string }) => (
@@ -29,6 +30,7 @@ interface Message {
   citations?: Citation[];
   arxiv_papers?: ArxivPaper[];
   web_sources?: WebSource[];
+  search_images?: { title: string; url: string }[];
   route?: string;
   report_id?: string;
   steps?: Step[];
@@ -58,27 +60,29 @@ const SOURCE_LABELS: Record<string, string> = {
   web: "Web",
 };
 
-function getActionLabel(tool: string, args: Record<string, unknown>): string {
+type ChatLabels = import("@/lib/i18n/dictionaries").Dict["chat"];
+
+function getActionLabel(tool: string, args: Record<string, unknown>, lbl: ChatLabels): string {
   if (tool === "call_search_agent") {
     const sources = args.sources as string[] | undefined;
-    if (!sources || sources.length === 0) return "Tìm kiếm đa nguồn";
+    if (!sources || sources.length === 0) return lbl.searchMulti;
     if (sources.length === 1) {
-      if (sources[0] === "arxiv") return "Tìm kiếm nghiên cứu arXiv";
-      if (sources[0] === "images") return "Tìm kiếm hình ảnh NASA";
-      if (sources[0] === "apod") return "Tìm kiếm ảnh thiên văn APOD";
-      if (sources[0] === "web") return "Tìm kiếm trang web";
-      return "Tìm kiếm thông tin";
+      if (sources[0] === "arxiv") return lbl.searchArxiv;
+      if (sources[0] === "images") return lbl.searchNasaImages;
+      if (sources[0] === "apod") return lbl.searchApod;
+      if (sources[0] === "web") return lbl.searchWeb;
+      return lbl.searchGeneric;
     }
     const named = sources.map((s) => SOURCE_LABELS[s] ?? s).join(" · ");
-    return `Tìm kiếm ${named}`;
+    return `${lbl.searchSources} ${named}`;
   }
-  if (tool === "call_notebook_agent") return "Phân tích tài liệu người dùng";
-  if (tool === "call_report_agent") return "Tạo báo cáo";
-  if (tool === "analyze_astronomy_image") return "Phân tích hình ảnh";
-  return "Xử lý";
+  if (tool === "call_notebook_agent") return lbl.analyzeDoc;
+  if (tool === "call_report_agent") return lbl.generateReport;
+  if (tool === "analyze_astronomy_image") return lbl.analyzeImage;
+  return lbl.processing;
 }
 
-function TypingDots() {
+function TypingDots({ label }: { label: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ display: "flex", gap: 4 }}>
@@ -91,7 +95,7 @@ function TypingDots() {
         ))}
       </div>
       <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, color: "#4a5568" }}>
-        Đang xử lý…
+        {label}
       </span>
     </div>
   );
@@ -106,6 +110,9 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
   onCreated,
   onActivity,
 }: ChatPanelProps, ref) {
+  const { locale, t } = useTranslation();
+  const chatLbl = t("chat");
+  const mbLbl = t("messageBody");
   const [messages, setMessages] = useState<Message[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(conversationId);
   const [convTitle, setConvTitle] = useState<string | null>(null);
@@ -173,6 +180,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
           citations: m.citations ?? undefined,
           arxiv_papers: m.arxiv_papers ?? undefined,
           web_sources: m.web_sources ?? undefined,
+          search_images: m.search_images ?? undefined,
           imageUrl: m.image_url ? `/api${m.image_url}` : undefined,
         })));
       })
@@ -250,7 +258,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
       const is429 = err instanceof Error && err.message.includes("429");
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: is429 ? "Đã đạt giới hạn sử dụng. Vui lòng thử lại sau hoặc nâng cấp gói." : "Lỗi: không gọi được máy chủ" },
+        { role: "assistant", content: is429 ? mbLbl.errorRateLimit : mbLbl.errorServer },
       ]);
     } finally {
       setLoading(false);
@@ -285,8 +293,8 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
       setThinkingSteps(thinkingStepsRef.current);
     };
 
-    // Always start with "Phân tích yêu cầu" — even if no thinking event arrives (e.g., simple greetings)
-    addStep({ label: "Phân tích yêu cầu" });
+    // Always start with analyzing step — even if no thinking event arrives (e.g., simple greetings)
+    addStep({ label: chatLbl.analyzing });
 
     try {
       for await (const event of streamConverse(messageText, {
@@ -294,16 +302,17 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
         mode: modeOpt,
         doc_ids: ctx.docIds.length > 0 ? ctx.docIds : undefined,
         image: image ?? null,
+        locale,
       })) {
         if (event.type === "thinking") {
-          // already added "Phân tích yêu cầu" above; skip duplicate
+          // already added analyzing step above; skip duplicate
         } else if (event.type === "action") {
           const ae = event as ActionAgentEvent;
-          addStep({ label: getActionLabel(ae.tool, ae.args) });
+          addStep({ label: getActionLabel(ae.tool, ae.args, chatLbl) });
         } else if (event.type === "text_delta") {
           if (!synthesisAddedRef.current) {
             synthesisAddedRef.current = true;
-            addStep({ label: "Tổng hợp câu trả lời" });
+            addStep({ label: chatLbl.synthesizing });
           }
           streamingTextRef.current += event.delta;
           setStreamingText(streamingTextRef.current);
@@ -320,6 +329,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
               citations: done.citations?.length ? done.citations : undefined,
               arxiv_papers: done.arxiv_papers?.length ? done.arxiv_papers : undefined,
               web_sources: done.web_sources?.length ? done.web_sources : undefined,
+              search_images: done.search_images?.length ? done.search_images : undefined,
               route: done.route,
               report_id: done.report_id ?? undefined,
               steps: capturedSteps,
@@ -340,7 +350,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
         } else if (event.type === "error") {
           setMessages((prev) => [
             ...prev,
-            { role: "assistant", content: `Lỗi: ${(event as { type: "error"; message: string }).message}` },
+            { role: "assistant", content: `${mbLbl.errorServer}: ${(event as { type: "error"; message: string }).message}` },
           ]);
         }
       }
@@ -350,9 +360,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
         ...prev,
         {
           role: "assistant",
-          content: is429
-            ? "Đã đạt giới hạn sử dụng. Vui lòng thử lại sau hoặc nâng cấp gói."
-            : "Lỗi: không gọi được máy chủ",
+          content: is429 ? mbLbl.errorRateLimit : mbLbl.errorServer,
         },
       ]);
     } finally {
@@ -501,7 +509,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
               marginBottom: 16,
               position: "relative",
             }}>
-              Ask anything about<br />the cosmos
+              {chatLbl.welcomeTitle}
             </h1>
 
             {/* Subtitle */}
@@ -516,7 +524,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
               lineHeight: 1.6,
               position: "relative",
             }}>
-              Khám phá vũ trụ cùng các agent AI chuyên biệt — tìm kiếm, phân tích, báo cáo xu hướng.
+              {chatLbl.welcomeSubtitle}
             </p>
 
             {/* Agent chips */}
@@ -524,13 +532,12 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
               display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center",
               position: "relative",
             }}>
-              {[
-                { name: "Chat Agent",     color: "#c9a55c", desc: "Hội thoại thiên văn" },
-                { name: "Search Agent",   color: "#5b8def", desc: "Tìm kiếm NASA · arXiv" },
-                { name: "Notebook Agent", color: "#22c55e", desc: "Phân tích tài liệu" },
-                { name: "Image Agent",    color: "#06b6d4", desc: "Phân tích ảnh thiên văn" },
-                { name: "Report Agent",   color: "#a78bfa", desc: "Báo cáo xu hướng" },
-              ].map((a) => (
+              {([
+                { name: "Search Agent",   color: "#5b8def", desc: chatLbl.agentDescs.search },
+                { name: "Notebook Agent", color: "#22c55e", desc: chatLbl.agentDescs.notebook },
+                { name: "Image Agent",    color: "#06b6d4", desc: chatLbl.agentDescs.image },
+                { name: "Report Agent",   color: "#a78bfa", desc: chatLbl.agentDescs.report },
+              ] as const).map((a) => (
                 <div key={a.name} style={{
                   display: "flex", alignItems: "center", gap: 8,
                   background: a.color + "12",
@@ -605,7 +612,10 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
                       </ReactMarkdown>
                     </div>
                   </div>
-                  <ImageStrip images={extractImages(m.content).images} />
+                  <ImageStrip images={[
+                    ...extractImages(m.content).images,
+                    ...(m.search_images ?? []).map((si) => ({ src: si.url, alt: si.title })),
+                  ]} />
                   <MessagePills
                     citations={m.citations}
                     arxivPapers={m.arxiv_papers}
@@ -659,7 +669,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
             <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
               <AssistantAvatar />
               <div style={{ paddingTop: 6 }}>
-                <TypingDots />
+                <TypingDots label={chatLbl.processingEllipsis} />
               </div>
             </div>
           )}

@@ -77,6 +77,7 @@ class ConverseRequest(BaseModel):
     web: bool = True                  # per-turn web toggle
     image_data: str | None = None     # base64-encoded image (data URL or raw base64)
     image_type: str | None = None     # MIME type, e.g. "image/jpeg"
+    locale: str | None = None         # "vi" | "en" | "ja"
 
 
 class AskRequest(BaseModel):
@@ -1080,7 +1081,7 @@ async def converse(
 
     # Input guard: reject off-topic requests before running orchestrator
     if not req.dry_run and (req.message.strip() or req.image_data):
-        from agents.guard import InputGuard, _REJECT_MESSAGE
+        from agents.guard import InputGuard, get_reject_message
         _guard = InputGuard()
         doc_names = None
         if parsed_doc_ids:
@@ -1095,12 +1096,13 @@ async def converse(
             doc_names=doc_names,
         )
         if not _relevant:
+            _reject_msg = get_reject_message(req.locale)
             store.append_message(conv_id, "user", req.message, image_url=saved_image_url)
-            store.append_message(conv_id, "assistant", _REJECT_MESSAGE, route="chat")
+            store.append_message(conv_id, "assistant", _reject_msg, route="chat")
             store.record_usage_event(user.id, "chat", 0)
 
             async def _guard_stream():
-                yield f"data: {_json.dumps({'type': 'text_delta', 'delta': _REJECT_MESSAGE})}\n\n"
+                yield f"data: {_json.dumps({'type': 'text_delta', 'delta': _reject_msg})}\n\n"
                 yield f"data: {_json.dumps({'type': 'done', 'session_id': conv_id, 'route': 'chat', 'citations': [], 'arxiv_papers': [], 'title': created_title, 'report_id': None})}\n\n"
 
             return StreamingResponse(_guard_stream(), media_type="text/event-stream")
@@ -1124,6 +1126,7 @@ async def converse(
         image_data=req.image_data,
         images_dir=res.settings.images_dir,
         conversation_id=conv_id,
+        locale=req.locale or "vi",
     )
 
     async def event_stream():
@@ -1132,6 +1135,7 @@ async def converse(
         final_citations: list = []
         final_arxiv_papers: list = []
         final_web_sources: list = []
+        final_search_images: list = []
         final_report_id: str | None = None
         final_analysis_data: dict | None = None
         final_suggested_action: dict | None = None
@@ -1146,6 +1150,7 @@ async def converse(
                         final_citations = event.citations
                         final_arxiv_papers = event.arxiv_papers
                         final_web_sources = event.web_sources
+                        final_search_images = event.search_images
                         final_report_id = event.report_id
                         final_analysis_data = event.analysis_data
                         final_suggested_action = event.suggested_action
@@ -1159,6 +1164,7 @@ async def converse(
                     route=final_route, citations=final_citations or None,
                     arxiv_papers=final_arxiv_papers or None,
                     web_sources=final_web_sources or None,
+                    search_images=final_search_images or None,
                     analysis_data=final_analysis_data,
                 )
                 feature = (
@@ -1170,7 +1176,7 @@ async def converse(
                 )
                 store.record_usage_event(user.id, feature, m.total)
 
-        yield f"data: {_json.dumps({'type': 'done', 'session_id': conv_id, 'route': final_route, 'citations': final_citations, 'arxiv_papers': final_arxiv_papers, 'web_sources': final_web_sources, 'title': created_title, 'report_id': final_report_id, 'suggested_action': final_suggested_action})}\n\n"
+        yield f"data: {_json.dumps({'type': 'done', 'session_id': conv_id, 'route': final_route, 'citations': final_citations, 'arxiv_papers': final_arxiv_papers, 'web_sources': final_web_sources, 'search_images': final_search_images, 'title': created_title, 'report_id': final_report_id, 'suggested_action': final_suggested_action})}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 

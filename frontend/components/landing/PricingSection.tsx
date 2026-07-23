@@ -1,61 +1,14 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useReveal } from "./useReveal";
-
-const PLANS = [
-  {
-    name: "Starter",
-    price: "Miễn phí",
-    period: "",
-    desc: "Lý tưởng để khám phá các chủ đề thiên văn học",
-    features: [
-      "50 truy vấn / tháng",
-      "Chat cơ bản với Chat Agent",
-      "5 tài liệu tải lên",
-      "Hỗ trợ cộng đồng",
-    ],
-    cta: "Bắt đầu",
-    href: "/register",
-    highlight: false,
-  },
-  {
-    name: "Pro",
-    price: "$19",
-    period: "/tháng",
-    desc: "Dành cho nhà nghiên cứu và sinh viên nghiêm túc",
-    features: [
-      "Truy vấn không giới hạn",
-      "Toàn bộ 4 tác tử chuyên biệt",
-      "100 tài liệu / tháng",
-      "Tạo báo cáo nghiên cứu",
-      "Xử lý ưu tiên",
-      "Hỗ trợ qua email",
-    ],
-    cta: "Dùng thử miễn phí",
-    href: "/register",
-    highlight: true,
-  },
-  {
-    name: "Team",
-    price: "$49",
-    period: "/người/tháng",
-    desc: "Dành cho phòng lab và nhóm nghiên cứu",
-    features: [
-      "Tất cả tính năng Pro",
-      "Thư viện nghiên cứu chung",
-      "Cộng tác nhóm",
-      "Truy cập API",
-      "Tích hợp tùy chỉnh",
-      "Hỗ trợ chuyên biệt",
-    ],
-    cta: "Liên hệ mua",
-    href: "/register",
-    highlight: false,
-  },
-];
 
 export function PricingSection() {
   const [ref, vis] = useReveal(0.1);
+  const { t } = useTranslation();
+  const landing = t("landing");
+  const pricing = landing.pricing;
+  const plans = landing.plans;
 
   return (
     <section id="pricing" style={{ padding: "var(--ld-section-pad) 0" }}>
@@ -81,7 +34,7 @@ export function PricingSection() {
               marginBottom: 14,
             }}
           >
-            Bảng Giá
+            {pricing.eyebrow}
           </p>
           <h2
             style={{
@@ -91,7 +44,7 @@ export function PricingSection() {
               marginBottom: 16,
             }}
           >
-            Giá Cả Đơn Giản, Minh Bạch
+            {pricing.title}
           </h2>
           <p
             style={{
@@ -101,7 +54,7 @@ export function PricingSection() {
               margin: "0 auto",
             }}
           >
-            Dùng miễn phí. Nâng cấp khi sẵn sàng.
+            {pricing.subtitle}
           </p>
         </div>
 
@@ -114,7 +67,7 @@ export function PricingSection() {
             margin: "0 auto",
           }}
         >
-          {PLANS.map((p, i) => (
+          {plans.map((p, i) => (
             <div
               key={i}
               style={{
@@ -164,7 +117,7 @@ export function PricingSection() {
                     textTransform: "uppercase",
                   }}
                 >
-                  Phổ biến
+                  {pricing.popular}
                 </div>
               )}
 
@@ -250,7 +203,7 @@ export function PricingSection() {
               </div>
 
               <a
-                href={p.href}
+                href="/register"
                 style={{
                   display: "block",
                   width: "100%",

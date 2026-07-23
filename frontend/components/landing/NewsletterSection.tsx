@@ -3,12 +3,15 @@
 import { useState } from "react";
 
 import { subscribeNewsletter } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useReveal } from "./useReveal";
 
 export function NewsletterSection() {
   const [ref, vis] = useReveal(0.1);
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const { t } = useTranslation();
+  const nl = t("landing").newsletter;
 
   async function handleSubmit() {
     if (!email.includes("@")) return;
@@ -46,7 +49,7 @@ export function NewsletterSection() {
             marginBottom: 12,
           }}
         >
-          Tham Gia Đài Quan Sát
+          {nl.title}
         </h2>
         <p
           style={{
@@ -57,8 +60,7 @@ export function NewsletterSection() {
             margin: "0 auto 32px",
           }}
         >
-          Là người đầu tiên biết về tính năng mới, công cụ nghiên cứu và những
-          khám phá thiên văn học.
+          {nl.subtitle}
         </p>
 
         {!submitted ? (
@@ -74,7 +76,7 @@ export function NewsletterSection() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") void handleSubmit(); }}
-              placeholder="you@university.edu"
+              placeholder={nl.placeholder}
               type="email"
               style={{
                 flex: 1,
@@ -109,7 +111,7 @@ export function NewsletterSection() {
                 whiteSpace: "nowrap",
               }}
             >
-              Đăng ký
+              {nl.cta}
             </button>
           </div>
         ) : (
@@ -120,7 +122,7 @@ export function NewsletterSection() {
               color: "var(--ld-accent)",
             }}
           >
-            ✓ Đăng ký thành công. Chào mừng bạn!
+            {nl.success}
           </p>
         )}
 
@@ -131,7 +133,7 @@ export function NewsletterSection() {
             marginTop: 16,
           }}
         >
-          Không có thư rác. Hủy đăng ký bất kỳ lúc nào.
+          {nl.nospam}
         </p>
       </div>
     </section>

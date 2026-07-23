@@ -1,4 +1,5 @@
 import asyncio
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import AsyncIterator
@@ -25,21 +26,46 @@ from persistence.vector import VectorStore
 
 MAX_ITER = 5
 
-_CONFIDENCE_VI = {"high": "cao", "medium": "trung bình", "low": "thấp"}
+_CONFIDENCE_LABELS: dict[str, dict[str, str]] = {
+    "vi": {"high": "cao", "medium": "trung bình", "low": "thấp"},
+    "en": {"high": "high", "medium": "medium", "low": "low"},
+    "ja": {"high": "高", "medium": "中", "low": "低"},
+}
+
+_IMAGE_ANALYSIS_HEADER: dict[str, str] = {
+    "vi": "Kết quả phân tích ảnh:",
+    "en": "Image analysis results:",
+    "ja": "画像解析結果:",
+}
+
+_IMAGE_MORPHOLOGY_NOTE: dict[str, str] = {
+    "vi": "✓ Đã phân tích hình thái chi tiết bằng mô hình CNN (Galaxy Zoo) để xác định cấu trúc thiên hà.",
+    "en": "✓ Detailed morphology analyzed using CNN model (Galaxy Zoo) to identify galaxy structure.",
+    "ja": "✓ CNNモデル（Galaxy Zoo）による詳細な形態解析で銀河構造を特定しました。",
+}
+
+_CONFIDENCE_LABEL_KEY: dict[str, str] = {
+    "vi": "độ tin cậy",
+    "en": "confidence",
+    "ja": "信頼度",
+}
 
 
-def _format_image_analysis_text(objects_data: list[dict], morphology_context: str | None) -> str:
-    """Human-readable Vietnamese summary of detected objects (no raw JSON)."""
-    lines = ["Kết quả phân tích ảnh:"]
+def _format_image_analysis_text(
+    objects_data: list[dict],
+    morphology_context: str | None,
+    locale: str = "vi",
+) -> str:
+    """Human-readable summary of detected objects in the requested locale."""
+    conf_map = _CONFIDENCE_LABELS.get(locale, _CONFIDENCE_LABELS["vi"])
+    conf_key = _CONFIDENCE_LABEL_KEY.get(locale, "độ tin cậy")
+    lines = [_IMAGE_ANALYSIS_HEADER.get(locale, _IMAGE_ANALYSIS_HEADER["vi"])]
     for obj in objects_data:
-        confidence = _CONFIDENCE_VI.get(obj["confidence"], obj["confidence"])
-        lines.append(f"- {obj['description']} (độ tin cậy: {confidence})")
+        confidence = conf_map.get(obj["confidence"], obj["confidence"])
+        lines.append(f"- {obj['description']} ({conf_key}: {confidence})")
     if morphology_context:
         lines.append("")
-        lines.append(
-            "✓ Đã phân tích hình thái chi tiết bằng mô hình CNN (Galaxy Zoo) "
-            "để xác định cấu trúc thiên hà."
-        )
+        lines.append(_IMAGE_MORPHOLOGY_NOTE.get(locale, _IMAGE_MORPHOLOGY_NOTE["vi"]))
     return "\n".join(lines)
 
 
@@ -52,11 +78,15 @@ _SYSTEM_PROMPT_BODY = (
     "Câu xác nhận ('... phải không?'): bắt đầu bằng 'Đúng' hoặc 'Sai', rồi mới giải thích. "
     "Không dùng 'đúng một phần' — nếu tổng thể sai dù có chi tiết đúng, vẫn trả lời Sai.\n"
     "Không dùng emoji, không thêm tiêu đề ## trừ khi đang viết báo cáo. "
-    "Trả lời bằng ngôn ngữ người dùng đang dùng (mặc định tiếng Việt).\n\n"
+    "Trả lời bằng ngôn ngữ người dùng đang dùng (mặc định theo locale được truyền vào — vi/en/ja).\n\n"
     "Công cụ có sẵn:\n\n"
     "analyze_astronomy_image — nhận dạng thiên thể trong ảnh\n"
-    "Gọi ngay khi user gửi ảnh. Nếu nhận ra thiên thể → tiếp tục tìm kiếm với "
-    "query '{sub_type} {class_name} astronomy'. Nếu không nhận ra → hỏi user mô tả thêm.\n\n"
+    "Gọi ngay khi user gửi ảnh.\n"
+    "Cũng gọi khi user yêu cầu 'tìm ảnh và phân tích', 'search and analyze images', hoặc tương tự: "
+    "sau khi call_search_agent trả về ảnh NASA/APOD, lấy image_url từ markdown ![title](url) "
+    "rồi gọi analyze_astronomy_image(image_url=<url>) cho ảnh đầu tiên phù hợp nhất.\n"
+    "Nếu nhận ra thiên thể → tiếp tục tìm kiếm với query '{sub_type} {class_name} astronomy'. "
+    "Nếu không nhận ra → mô tả những gì thấy được.\n\n"
     "call_search_agent(query, sources?, web_days?) — tìm kiếm thông tin thiên văn\n"
     "sources: 'images' = ảnh NASA · 'arxiv' = paper · 'web' = tin tức · 'apod' = ảnh ngày hôm nay\n"
     "Không truyền sources = tìm tất cả.\n"
@@ -75,17 +105,70 @@ _SYSTEM_PROMPT_BODY = (
 )
 
 
-def _build_system_prompt() -> list[dict]:
+_LOCALE_NAMES: dict[str, str] = {
+    "vi": "tiếng Việt",
+    "en": "English",
+    "ja": "日本語",
+}
+
+_REPORT_TITLE_PREFIX: dict[str, str] = {
+    "vi": "Báo cáo",
+    "en": "Report",
+    "ja": "レポート",
+}
+
+
+def _build_system_prompt(locale: str = "vi") -> list[dict]:
     """Two blocks: a small uncached date prefix (changes daily) and the stable
     body marked with cache_control so it's reused across every ReAct iteration
     and every test item in a run, instead of being billed as fresh input each
     time (~510 tokens, well above Sonnet's 1024-token cache minimum once
     combined with the tools array)."""
     today = datetime.now(timezone.utc).strftime("%d/%m/%Y")
+    lang_name = _LOCALE_NAMES.get(locale, "tiếng Việt")
     return [
-        {"type": "text", "text": f"Ngày hiện tại: {today}.\n\n"},
+        {
+            "type": "text",
+            "text": (
+                f"Ngày hiện tại: {today}. Ngôn ngữ ưu tiên: {lang_name}.\n"
+                f"Khi gọi call_report_agent, tham số topic PHẢI viết bằng {lang_name} "
+                f"(không được dùng tiếng Anh hoặc ngôn ngữ khác).\n\n"
+            ),
+        },
         {"type": "text", "text": _SYSTEM_PROMPT_BODY, "cache_control": {"type": "ephemeral"}},
     ]
+
+
+_MD_IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+
+
+def _extract_search_images(text: str) -> list[dict]:
+    """Extract ![title](url) markdown from tool result text into structured dicts."""
+    seen: set[str] = set()
+    images = []
+    for m in _MD_IMAGE_RE.finditer(text):
+        url = m.group(2).strip()
+        if url not in seen:
+            seen.add(url)
+            images.append({"title": m.group(1).strip(), "url": url})
+    return images
+
+
+async def _fetch_image_as_base64(url: str) -> str | None:
+    """Download an image from a URL and return it as a base64 data URL."""
+    import base64
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            r = await client.get(url, headers={"User-Agent": "AstroMind/1.0"})
+            r.raise_for_status()
+            content_type = r.headers.get("content-type", "image/jpeg").split(";")[0].strip()
+            if not content_type.startswith("image/"):
+                content_type = "image/jpeg"
+            b64 = base64.b64encode(r.content).decode()
+            return f"data:{content_type};base64,{b64}"
+    except Exception:
+        return None
 
 
 @dataclass
@@ -106,6 +189,7 @@ class OrchestratorAgent:
     enabled_sources: set[str] | None = None
     image_data: str | None = None  # base64 data URL for the current turn's image
     images_dir: object | None = None  # pathlib.Path to images_dir for history vision blocks
+    locale: str = "vi"
 
     async def run(
         self,
@@ -124,6 +208,7 @@ class OrchestratorAgent:
         citations: list = []
         arxiv_papers: list = []
         web_sources: list = []
+        search_images: list = []
         route = "chat"
         report_id: str | None = None
         image_analysis_data: dict | None = None
@@ -137,7 +222,7 @@ class OrchestratorAgent:
                     api_key=self.api_key,
                     model=self.model,
                     tools=ORCHESTRATOR_TOOLS,
-                    system=_build_system_prompt(),
+                    system=_build_system_prompt(self.locale),
                     budget_tokens=5000,
                 )
 
@@ -165,13 +250,23 @@ class OrchestratorAgent:
                     (
                         result, block_citations, block_route, block_report_id,
                         block_papers, block_analysis_data, block_web_sources,
-                    ) = await self._dispatch_tool(block.name, block.input, dry_run=dry_run)
+                    ) = await self._dispatch_tool(
+                        block.name, block.input, dry_run=dry_run,
+                        pre_fetched_papers=arxiv_papers,
+                        pre_fetched_web=web_sources,
+                        search_images=search_images,
+                    )
                     if block_citations:
                         citations.extend(block_citations)
                     if block_papers:
                         arxiv_papers.extend(block_papers)
                     if block_web_sources:
                         web_sources.extend(block_web_sources)
+                    # Collect image URLs returned by search agent
+                    if block.name == "call_search_agent":
+                        for img in _extract_search_images(str(result)):
+                            if not any(s["url"] == img["url"] for s in search_images):
+                                search_images.append(img)
                     if _ROUTE_PRI.get(block_route, 0) > _ROUTE_PRI.get(route, 0):
                         route = block_route
                     if block_report_id:
@@ -202,26 +297,36 @@ class OrchestratorAgent:
 
         yield DoneEvent(
             route=route, citations=[c.to_dict() for c in citations], arxiv_papers=arxiv_papers,
-            web_sources=web_sources, report_id=report_id, analysis_data=image_analysis_data,
-            suggested_action=suggested_action,
+            web_sources=web_sources, search_images=search_images, report_id=report_id,
+            analysis_data=image_analysis_data, suggested_action=suggested_action,
         )
 
     async def _dispatch_tool(
-        self, name: str, args: dict, *, dry_run: bool
+        self, name: str, args: dict, *, dry_run: bool,
+        pre_fetched_papers: list | None = None,
+        pre_fetched_web: list | None = None,
+        search_images: list | None = None,
     ) -> tuple[str, list, str, str | None, list, dict | None, list]:
         if name == "analyze_astronomy_image":
-            if not self.image_data:
-                return "Không có ảnh nào được đính kèm.", [], "chat", None, [], None, []
+            image_url_arg = args.get("image_url", "")
+            if not self.image_data and not image_url_arg:
+                return "Không có ảnh nào để phân tích.", [], "chat", None, [], None, []
             if dry_run:
                 return (
                     '[dry-run] {"detected_objects": [{"class_name": "galaxy", '
                     '"sub_type": "spiral", "confidence": "high", "description": "Test galaxy"}]}',
                     [], "chat", None, [], None, [],
                 )
+            if image_url_arg:
+                image_data = await _fetch_image_as_base64(image_url_arg)
+                if image_data is None:
+                    return "Không thể tải ảnh từ URL đã cung cấp.", [], "chat", None, [], None, []
+            else:
+                image_data = self.image_data  # type: ignore[assignment]
             from agents.image_agent import ImageAgent
             img_agent = ImageAgent()
             result = await img_agent.analyze(
-                image_data=self.image_data,
+                image_data=image_data,
                 user_question=args.get("question", ""),
                 api_key=self.api_key,
                 model=self.model_light,
@@ -230,7 +335,7 @@ class OrchestratorAgent:
                 return (
                     "Không nhận ra thiên thể nào trong ảnh này. "
                     "Có thể ảnh không phải ảnh thiên văn hoặc chất lượng chưa đủ rõ.",
-                    [], "image", None, [], None,
+                    [], "image", None, [], None, [],
                 )
             objects_data = [
                 {
@@ -246,7 +351,7 @@ class OrchestratorAgent:
                 "morphology_context": result.morphology_context,
             }
             return (
-                _format_image_analysis_text(objects_data, result.morphology_context),
+                _format_image_analysis_text(objects_data, result.morphology_context, self.locale),
                 [], "image", None, [], analysis_data, [],
             )
 
@@ -300,7 +405,8 @@ class OrchestratorAgent:
                 title = "Báo cáo khám phá phiên làm việc"
             else:
                 label = topic[:60].strip()
-                title = f"Báo cáo: {label}"
+                prefix = _REPORT_TITLE_PREFIX.get(self.locale, "Báo cáo")
+                title = f"{prefix}: {label}"
             initial_payload = {**_EMPTY_PAYLOAD, "report_type": report_type}
             report_id = self.store.create_report(self.user_id, title, initial_payload)
 
@@ -315,14 +421,20 @@ class OrchestratorAgent:
                 vector=self.vector,
                 embedder=self.embedder,
                 reranker=self.reranker,
+                locale=self.locale,
             )
 
             doc_ids = args.get("doc_ids") or self.doc_ids
+
+            _papers = list(pre_fetched_papers) if pre_fetched_papers else []
+            _web = list(pre_fetched_web) if pre_fetched_web else []
+            _imgs = list(search_images) if search_images else []
 
             async def _bg_generate() -> None:
                 await asyncio.to_thread(
                     agent.run_update, report_id, topic,
                     report_type=report_type, doc_ids=doc_ids, conversation_id=self.conversation_id,
+                    pre_fetched_papers=_papers, pre_fetched_web=_web, search_images=_imgs,
                 )
 
             asyncio.create_task(_bg_generate())

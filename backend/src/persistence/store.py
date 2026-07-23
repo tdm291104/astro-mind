@@ -328,6 +328,7 @@ class MetaStore:
         route: str | None = None, citations: list[dict] | None = None,
         arxiv_papers: list[dict] | None = None,
         web_sources: list[dict] | None = None,
+        search_images: list[dict] | None = None,
         image_url: str | None = None,
         analysis_data: dict | None = None,
     ) -> None:
@@ -344,6 +345,7 @@ class MetaStore:
                 route=route, citations=json.dumps(citations) if citations else None,
                 arxiv_papers=json.dumps(arxiv_papers) if arxiv_papers else None,
                 web_sources=json.dumps(web_sources) if web_sources else None,
+                search_images=json.dumps(search_images) if search_images else None,
                 image_url=image_url,
                 analysis_data=json.dumps(analysis_data) if analysis_data else None,
                 seq=next_seq,
@@ -363,6 +365,7 @@ class MetaStore:
                     "citations": json.loads(r.citations) if r.citations else None,
                     "arxiv_papers": json.loads(r.arxiv_papers) if r.arxiv_papers else None,
                     "web_sources": json.loads(r.web_sources) if r.web_sources else None,
+                    "search_images": json.loads(r.search_images) if r.search_images else None,
                     "image_url": r.image_url,
                     "analysis_data": json.loads(r.analysis_data) if r.analysis_data else None,
                 }

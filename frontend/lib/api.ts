@@ -89,6 +89,7 @@ export interface ChatMessage {
   citations: Citation[] | null;
   arxiv_papers?: ArxivPaper[] | null;
   web_sources?: WebSource[] | null;
+  search_images?: SearchImage[] | null;
   image_url?: string | null;
 }
 
@@ -196,6 +197,11 @@ export interface TopAuthor {
   count: number;
 }
 
+export interface SearchImage {
+  title: string;
+  url: string;
+}
+
 export interface DetectedObject {
   class_name: string;
   sub_type: string;
@@ -231,6 +237,7 @@ export interface TrendsReport {
   top_authors?: TopAuthor[];
   keywords?: string[];
   discovery?: DiscoveryData | null;
+  search_images?: SearchImage[];
   generated_at?: string;
 }
 
@@ -610,6 +617,7 @@ export interface DoneAgentEvent {
   citations: Citation[];
   arxiv_papers?: ArxivPaper[];
   web_sources?: WebSource[];
+  search_images?: SearchImage[];
   title?: string;
   report_id?: string | null;
   suggested_action?: { type: string } | null;
@@ -652,6 +660,7 @@ export async function* streamConverse(
     doc_ids?: string[];
     dry_run?: boolean;
     image?: File | null;
+    locale?: string | null;
   },
 ): AsyncGenerator<AgentEvent> {
   let imageData: string | null = null;
@@ -673,6 +682,7 @@ export async function* streamConverse(
       dry_run: opts?.dry_run ?? false,
       image_data: imageData,
       image_type: imageType,
+      locale: opts?.locale ?? null,
     }),
   });
 

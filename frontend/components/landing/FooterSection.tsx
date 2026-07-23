@@ -1,14 +1,12 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { AstroLogo } from "./AstroLogo";
 
-const COLS = [
-  { title: "Sản phẩm", links: ["Tính năng", "Bảng giá", "Demo", "Nhật ký thay đổi", "Tài liệu API"] },
-  { title: "Tài nguyên", links: ["Tài liệu", "Hướng dẫn", "Blog", "Bài báo nghiên cứu", "Trạng thái"] },
-  { title: "Công ty", links: ["Giới thiệu", "Tuyển dụng", "Liên hệ", "Quyền riêng tư", "Điều khoản"] },
-];
-
 export function FooterSection() {
+  const { t } = useTranslation();
+  const footer = t("landing").footer;
+
   return (
     <footer
       style={{
@@ -60,13 +58,12 @@ export function FooterSection() {
                 maxWidth: 240,
               }}
             >
-              Công cụ nghiên cứu thiên văn học được hỗ trợ bởi AI. Dành cho những
-              tâm hồn tò mò khám phá vũ trụ.
+              {footer.tagline}
             </p>
           </div>
 
           {/* Link columns */}
-          {COLS.map((col, i) => (
+          {footer.cols.map((col, i) => (
             <div key={i}>
               <div
                 style={{
@@ -128,7 +125,7 @@ export function FooterSection() {
               fontFamily: "var(--ld-font-mono)",
             }}
           >
-            © 2026 Astro Mind. Bảo lưu mọi quyền.
+            {footer.copyright}
           </span>
           <div style={{ display: "flex", gap: 16 }}>
             {["Twitter", "GitHub", "Discord"].map((s) => (

@@ -29,7 +29,7 @@ body {
     radial-gradient(60rem 60rem at 20% -10%, rgba(201, 165, 92, 0.04), transparent 60%),
     radial-gradient(40rem 40rem at 85% 5%, rgba(201, 165, 92, 0.03), transparent 50%);
   background-attachment: fixed;
-  font-family: var(--font-space-grotesk), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-space-grotesk), var(--font-noto-sans-jp), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
 }
@@ -117,7 +117,7 @@ body {
   --ld-accent: #c9a55c;
   --ld-accent-glow: rgba(201, 165, 92, 0.15);
   --ld-font-serif: var(--font-instrument-serif), Georgia, serif;
-  --ld-font-sans: var(--font-space-grotesk), system-ui, sans-serif;
+  --ld-font-sans: var(--font-space-grotesk), var(--font-noto-sans-jp), system-ui, sans-serif;
   --ld-font-mono: var(--font-jetbrains-mono), monospace;
   --ld-section-pad: clamp(72px, 9vw, 130px);
   --ld-content-max: 1140px;

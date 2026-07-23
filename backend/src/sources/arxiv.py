@@ -15,11 +15,12 @@ def build_arxiv_params(query: str, *, max_results: int = 5, sort_by: str = "subm
 
 
 def parse_arxiv(feed_text: str) -> list[dict]:
-    """Parse arXiv Atom XML into paper dicts (title, authors, summary, published, link)."""
+    """Parse arXiv Atom XML into paper dicts (title, authors, summary, published, link, categories)."""
     parsed = feedparser.parse(feed_text)
     papers: list[dict] = []
     for entry in parsed.entries:
         authors = ", ".join(a.get("name", "") for a in entry.get("authors", []))
+        categories = [t.get("term", "") for t in entry.get("tags", [])]
         papers.append(
             {
                 "title": entry.get("title", "").strip(),
@@ -27,6 +28,7 @@ def parse_arxiv(feed_text: str) -> list[dict]:
                 "summary": entry.get("summary", "").strip(),
                 "published": entry.get("published", ""),
                 "link": entry.get("link", ""),
+                "categories": categories,
             }
         )
     return papers

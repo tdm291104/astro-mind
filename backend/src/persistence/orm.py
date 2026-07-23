@@ -91,6 +91,7 @@ class MessageRow(Base):
     citations: Mapped[str | None] = mapped_column(default=None)  # JSON-encoded list[dict]
     arxiv_papers: Mapped[str | None] = mapped_column(default=None)  # JSON-encoded list[dict]
     web_sources: Mapped[str | None] = mapped_column(default=None)   # JSON-encoded list[dict]
+    search_images: Mapped[str | None] = mapped_column(default=None) # JSON-encoded list[dict]
     image_url: Mapped[str | None] = mapped_column(default=None)
     analysis_data: Mapped[str | None] = mapped_column(default=None)  # JSON-encoded dict
     seq: Mapped[int] = mapped_column(nullable=False)

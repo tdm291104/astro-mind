@@ -46,6 +46,7 @@ class DoneEvent:
     citations: list = field(default_factory=list)
     arxiv_papers: list = field(default_factory=list)
     web_sources: list = field(default_factory=list)
+    search_images: list = field(default_factory=list)
     report_id: str | None = None
     analysis_data: dict | None = None
     suggested_action: dict | None = None
@@ -58,6 +59,7 @@ class DoneEvent:
             "citations": self.citations,
             "arxiv_papers": self.arxiv_papers,
             "web_sources": self.web_sources,
+            "search_images": self.search_images,
             "report_id": self.report_id,
             "analysis_data": self.analysis_data,
             "suggested_action": self.suggested_action,

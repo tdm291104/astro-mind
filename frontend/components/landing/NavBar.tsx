@@ -2,23 +2,35 @@
 
 import { useEffect, useState } from "react";
 
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
+import type { Locale } from "@/lib/i18n/dictionaries";
 import { AstroLogo } from "./AstroLogo";
 
-const LINKS = [
-  { label: "Tính năng", href: "#features" },
-  { label: "Demo", href: "#demo" },
-  { label: "Bảng giá", href: "#pricing" },
-  { label: "FAQ", href: "#faq" },
-];
+const LOCALE_CYCLE: Locale[] = ["vi", "en", "ja"];
+const LOCALE_LABEL: Record<Locale, string> = { vi: "VI", en: "EN", ja: "JA" };
 
 export function NavBar() {
   const [scrolled, setScrolled] = useState(false);
+  const { t, locale, setLocale } = useTranslation();
+  const nav = t("landing").nav;
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
+
+  function cycleLocale() {
+    const idx = LOCALE_CYCLE.indexOf(locale);
+    setLocale(LOCALE_CYCLE[(idx + 1) % LOCALE_CYCLE.length]);
+  }
+
+  const LINKS = [
+    { label: nav.features, href: "#features" },
+    { label: nav.demo, href: "#demo" },
+    { label: nav.pricing, href: "#pricing" },
+    { label: nav.faq, href: "#faq" },
+  ];
 
   return (
     <nav
@@ -64,7 +76,7 @@ export function NavBar() {
         </span>
       </a>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
         <div style={{ display: "flex", gap: 28 }}>
           {LINKS.map((l) => (
             <a
@@ -90,6 +102,33 @@ export function NavBar() {
             </a>
           ))}
         </div>
+
+        {/* Language switcher */}
+        <div style={{ display: "flex", gap: 2, background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: 3, border: "1px solid rgba(255,255,255,0.06)" }}>
+          {LOCALE_CYCLE.map((loc) => (
+            <button
+              key={loc}
+              type="button"
+              onClick={() => setLocale(loc)}
+              style={{
+                fontFamily: "var(--font-jetbrains-mono), monospace",
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: "0.06em",
+                color: locale === loc ? "var(--ld-bg-deep)" : "var(--ld-text-dim)",
+                background: locale === loc ? "var(--ld-accent)" : "transparent",
+                border: "none",
+                borderRadius: 5,
+                padding: "3px 8px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+            >
+              {LOCALE_LABEL[loc]}
+            </button>
+          ))}
+        </div>
+
         <a
           href="/login"
           style={{
@@ -118,7 +157,7 @@ export function NavBar() {
             el.style.boxShadow = "";
           }}
         >
-          Bắt đầu ngay
+          {nav.getStarted}
         </a>
       </div>
     </nav>

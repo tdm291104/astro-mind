@@ -57,20 +57,14 @@ function SearchIcon() {
   );
 }
 
-function fmtDate(iso: string): string {
+function fmtDate(iso: string, locale: string, labels: { today: string; yesterday: string }): string {
   const diff = Date.now() - new Date(iso).getTime();
   const d = Math.floor(diff / 86400000);
-  if (d === 0) return "Today";
-  if (d === 1) return "Yesterday";
-  if (d < 7) return new Date(iso).toLocaleDateString("en", { weekday: "short" });
-  return new Date(iso).toLocaleDateString("en", { month: "short", day: "numeric" });
+  if (d === 0) return labels.today;
+  if (d === 1) return labels.yesterday;
+  if (d < 7) return new Date(iso).toLocaleDateString(locale, { weekday: "short" });
+  return new Date(iso).toLocaleDateString(locale, { month: "short", day: "numeric" });
 }
-
-const REPORT_TYPE_TAG: Record<string, string> = {
-  research: "NGHIÊN CỨU",
-  trending: "XU HƯỚNG",
-  discovery: "KHÁM PHÁ",
-};
 
 function ReportItem({
   id, title, date, reportType, onClick, onDeleted, onRenamed,
@@ -80,7 +74,8 @@ function ReportItem({
   onDeleted: () => void;
   onRenamed: (title: string) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const s = t("sidebar");
   const [hovered, setHovered] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [renameVal, setRenameVal] = useState(title);
@@ -196,11 +191,11 @@ function ReportItem({
           color: "#22c55e", background: "rgba(34,197,94,0.1)",
           borderRadius: 3, padding: "1px 5px",
         }}>
-          {REPORT_TYPE_TAG[reportType ?? "research"] ?? REPORT_TYPE_TAG.research}
+          {s.reportTypes[(reportType ?? "research") as keyof typeof s.reportTypes] ?? s.reportTypes.research}
         </span>
         <span style={{ flex: 1 }} />
         <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontSize: 9, color: "#4a5568" }}>
-          {fmtDate(date)}
+          {fmtDate(date, locale, s.dateLabels)}
         </span>
       </div>
     </div>
@@ -501,19 +496,26 @@ export default function Sidebar({
         display: "flex", justifyContent: "center",
         flexShrink: 0,
       }}>
-        <button
-          type="button"
-          onClick={() => setLocale(locale === "vi" ? "en" : "vi")}
-          title={s.language}
-          style={{
-            fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, letterSpacing: "0.08em",
-            color: "#8892a8", background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6,
-            padding: "4px 10px", cursor: "pointer",
-          }}
-        >
-          {locale === "vi" ? "VI · EN" : "EN · VI"}
-        </button>
+        <div style={{ display: "flex", gap: 2 }}>
+          {(["vi", "en", "ja"] as const).map((loc) => (
+            <button
+              key={loc}
+              type="button"
+              onClick={() => setLocale(loc)}
+              title={s.language}
+              style={{
+                fontFamily: "var(--font-jetbrains-mono)", fontSize: 9, letterSpacing: "0.06em",
+                color: locale === loc ? "var(--aurora-cyan)" : "#8892a8",
+                background: locale === loc ? "rgba(201,165,92,0.1)" : "transparent",
+                border: locale === loc ? "1px solid rgba(201,165,92,0.25)" : "1px solid transparent",
+                borderRadius: 5, padding: "3px 7px", cursor: "pointer",
+                textTransform: "uppercase",
+              }}
+            >
+              {loc}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* User profile footer */}

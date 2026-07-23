@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro, Instrument_Serif, JetBrains_Mono, Space_Grotesk, Syne } from "next/font/google";
+import { Be_Vietnam_Pro, Instrument_Serif, JetBrains_Mono, Noto_Sans_JP, Space_Grotesk, Syne } from "next/font/google";
 
 import AuthGate from "@/components/AuthGate";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
@@ -41,13 +41,21 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const notoSansJP = Noto_Sans_JP({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-noto-sans-jp",
+  display: "swap",
+  preload: false,
+});
+
 export const metadata: Metadata = { title: "AstroMind" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="vi"
-      className={`${instrumentSerif.variable} ${beVietnam.variable} ${spaceGrotesk.variable} ${syne.variable} ${jetbrainsMono.variable}`}
+      className={`${instrumentSerif.variable} ${beVietnam.variable} ${spaceGrotesk.variable} ${syne.variable} ${jetbrainsMono.variable} ${notoSansJP.variable}`}
     >
       <body>
         <LanguageProvider>

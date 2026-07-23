@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 export interface Step {
   label: string;
@@ -13,6 +14,8 @@ interface ThinkingStepProps {
 
 export function ThinkingStep({ steps, isStreaming }: ThinkingStepProps) {
   const [open, setOpen] = useState(true);
+  const { t } = useTranslation();
+  const chatLbl = t("chat");
 
   if (steps.length === 0 && !isStreaming) return null;
 
@@ -56,7 +59,7 @@ export function ThinkingStep({ steps, isStreaming }: ThinkingStepProps) {
           color: isStreaming ? "#c9a55c" : "rgba(255,255,255,0.4)",
           flex: 1,
         }}>
-          {isEmpty ? "Đang xử lý…" : `Quá trình xử lý · ${steps.length} bước`}
+          {isEmpty ? chatLbl.processingEllipsis : chatLbl.thinkingHeader.replace("{n}", String(steps.length))}
         </span>
 
         {!isEmpty && (
