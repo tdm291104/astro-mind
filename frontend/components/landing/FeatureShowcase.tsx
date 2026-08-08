@@ -8,6 +8,7 @@ import { useReveal } from "./useReveal";
 const AGENT_ICONS = [
   (
     <svg
+      key="search"
       width="24"
       height="24"
       viewBox="0 0 24 24"
@@ -23,6 +24,7 @@ const AGENT_ICONS = [
   ),
   (
     <svg
+      key="notebook"
       width="24"
       height="24"
       viewBox="0 0 24 24"
@@ -40,6 +42,7 @@ const AGENT_ICONS = [
   ),
   (
     <svg
+      key="image"
       width="24"
       height="24"
       viewBox="0 0 24 24"
@@ -58,6 +61,7 @@ const AGENT_ICONS = [
   ),
   (
     <svg
+      key="report"
       width="24"
       height="24"
       viewBox="0 0 24 24"

@@ -20,11 +20,6 @@ export function NavBar() {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  function cycleLocale() {
-    const idx = LOCALE_CYCLE.indexOf(locale);
-    setLocale(LOCALE_CYCLE[(idx + 1) % LOCALE_CYCLE.length]);
-  }
-
   const LINKS = [
     { label: nav.features, href: "#features" },
     { label: nav.demo, href: "#demo" },

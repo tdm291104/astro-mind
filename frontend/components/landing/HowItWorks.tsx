@@ -6,6 +6,7 @@ import { useReveal } from "./useReveal";
 const STEP_ICONS = [
   (
     <svg
+      key="upload"
       width="28"
       height="28"
       viewBox="0 0 28 28"
@@ -20,6 +21,7 @@ const STEP_ICONS = [
   ),
   (
     <svg
+      key="agents"
       width="28"
       height="28"
       viewBox="0 0 28 28"
@@ -39,6 +41,7 @@ const STEP_ICONS = [
   ),
   (
     <svg
+      key="report"
       width="28"
       height="28"
       viewBox="0 0 28 28"
