@@ -1,4 +1,5 @@
 import json
+from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -9,6 +10,17 @@ from persistence.embed import Embedder
 from persistence.rerank import Reranker
 from persistence.store import MetaStore
 from persistence.vector import VectorStore
+from sources.arxiv import fetch_arxiv
+from sources.websearch import fetch_web
+from trends.googletrends import fetch_trends
+from trends.report import (
+    analyze_interest,
+    analyze_trends,
+    collect_topic_counts,
+    format_interest,
+    parse_series,
+    parse_trends,
+)
 
 _LANG_MAP: dict[str, str] = {"vi": "tiếng Việt", "en": "English", "ja": "日本語"}
 
@@ -291,8 +303,6 @@ def _compute_author_frequency(papers: list[dict], top_n: int = 5) -> list[dict]:
     `authors` is a comma-separated string of full names (see sources/arxiv.py).
     Built entirely from already-fetched data — never LLM-generated.
     """
-    from collections import Counter
-
     counter: Counter[str] = Counter()
     for p in papers:
         for name in (p.get("authors") or "").split(", "):
@@ -339,7 +349,6 @@ class ReportAgent:
         if not self.tavily_key:
             return []
         try:
-            from sources.websearch import fetch_web
             return fetch_web(
                 f"{topic} astronomy research recent discoveries",
                 self.tavily_key,
@@ -353,7 +362,6 @@ class ReportAgent:
 
     def _fetch_arxiv_papers(self, keywords: list[str]) -> list[dict]:
         try:
-            from sources.arxiv import fetch_arxiv
             papers = fetch_arxiv(" ".join(keywords[:3]), max_results=14, timeout=8.0, sort_by="relevance")
             # Pass 1: keep only astronomy-category papers
             astro = [
@@ -530,14 +538,6 @@ class ReportAgent:
     def _collect_trending_data(
         self, keywords: list[str], prev_year: int, recent_year: int
     ) -> tuple[list[dict], str, dict, str]:
-        from trends.report import (
-            analyze_interest,
-            analyze_trends,
-            collect_topic_counts,
-            format_interest,
-            parse_series,
-            parse_trends,
-        )
         topic_rows: list[dict] = []
         topics_analysis = ""
         try:
@@ -554,7 +554,6 @@ class ReportAgent:
         interest_text = ""
         if self.serpapi_api_key:
             try:
-                from trends.googletrends import fetch_trends
                 payload = fetch_trends(keywords[:5], self.serpapi_api_key)
                 rows = parse_trends(payload)
                 interest_series = parse_series(payload)
