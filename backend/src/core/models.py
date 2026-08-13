@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import uuid4
 
 
@@ -33,7 +34,7 @@ class SourceBlock:
 @dataclass
 class Document:
     name: str
-    type: str
+    type: Literal["pdf", "docx", "fits", "text", "url"]
     file_path: str
     page_count: int
     id: str = field(default_factory=new_uuid)
@@ -49,7 +50,7 @@ class Chunk:
     chunk_index: int
     token_count: int
     section_title: str | None = None
-    chunk_type: str = "text"
+    chunk_type: Literal["text", "analysis"] = "text"
     id: str = field(default_factory=new_uuid)
 
 
