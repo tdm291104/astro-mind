@@ -13,6 +13,10 @@
 
 ---
 
+![AstroMind Screenshot](docs/screenshot.png)
+
+---
+
 ## Features
 
 - **Multi-agent orchestration** — OrchestratorAgent coordinates SearchAgent, NotebookAgent, ReportAgent, and ImageAgent with extended thinking (interleaved-thinking beta)
