@@ -172,7 +172,7 @@ export default function AdminQuotasPage() {
                     {plans.map((plan) => {
                       const val = getPlanValue(plan, field.key);
                       const isEditing = editingCell === `${plan.name}-${field.key}`;
-                      const hasPending = !!pendingChanges[plan.name]?.[field.key] !== undefined && pendingChanges[plan.name]?.[field.key] !== plan[field.key];
+                      const hasPending = pendingChanges[plan.name]?.[field.key] !== undefined && pendingChanges[plan.name]?.[field.key] !== plan[field.key];
                       return (
                         <td key={plan.name} style={tdStyle}>
                           {isEditing ? (
