@@ -25,14 +25,19 @@
 
 ## Architecture
 
-```
-frontend (Next.js 14)  ──API proxy──▶  backend (FastAPI)
-                                              │
-                          ┌───────────────────┼────────────────────┐
-                          │                   │                    │
-                     ChromaDB            SQLite (ORM)        Anthropic API
-                  (vector store)       (users, docs,        (Sonnet orchestrator
-                                         sessions)           + Haiku sub-agents)
+```mermaid
+graph LR
+    FE["🖥️ Frontend\nNext.js 14"] -->|API proxy| BE["⚡ Backend\nFastAPI"]
+
+    BE --> ORC["🧠 Orchestrator\nExtended Thinking"]
+    ORC --> SA["🔍 SearchAgent\nNASA · arXiv · Web"]
+    ORC --> NA["📚 NotebookAgent\nRAG + Citations"]
+    ORC --> RA["📊 ReportAgent\nTrends + PDF"]
+    ORC --> IA["🌌 ImageAgent\nVision + CNN"]
+
+    BE --> DB1["ChromaDB\nVector Store"]
+    BE --> DB2["SQLite\nUsers · Docs · Sessions"]
+    BE --> AI["Anthropic API\nSonnet · Haiku"]
 ```
 
 ## Prerequisites
