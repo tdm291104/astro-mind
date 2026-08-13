@@ -169,10 +169,7 @@ def answer(
     return NotebookResult(text=answer_text, citations=citations, had_hits=True)
 
 
-from dataclasses import dataclass as _dataclass
-
-
-@_dataclass
+@dataclass
 class NotebookAgent:
     """Wrapper around answer() with mini-ReAct retry on empty retrieval.
     Called by OrchestratorAgent as a tool."""
