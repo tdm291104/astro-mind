@@ -1,7 +1,5 @@
 import re
 
-from anthropic import AsyncAnthropic
-
 from core.metering import record_usage
 from core.models import Chunk, locator_label
 
@@ -91,7 +89,7 @@ async def stream_synthesize(
     extract_used_markers() on the concatenated output afterwards.
     """
     user_prompt = build_user_prompt(question, chunks)
-    client = AsyncAnthropic(api_key=api_key)
+    client = llm._get_async_client(api_key)
     async with client.messages.stream(
         model=model,
         max_tokens=4096,

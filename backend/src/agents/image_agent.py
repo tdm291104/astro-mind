@@ -5,8 +5,7 @@ import json
 import logging
 from dataclasses import dataclass, field
 
-import anthropic
-
+from agents import llm
 from agents.galaxy_predictor import GalaxyPredictor, MorphologyResult
 
 _logger = logging.getLogger(__name__)
@@ -168,7 +167,7 @@ class ImageAgent:
         Returns AnalyzeResult with list of detected celestial objects.
         """
         try:
-            client = anthropic.Anthropic(api_key=api_key)
+            client = llm._get_client(api_key)
             response = await asyncio.to_thread(
                 client.messages.create,
                 **build_stage1_request(image_data, user_question, model=model),

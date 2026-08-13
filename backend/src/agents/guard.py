@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
-import anthropic
+from . import llm
 
 _SYSTEM = (
     "You are a content classifier for AstroMind, an astronomy assistant. "
@@ -166,7 +166,7 @@ async def _classify(system: str, content, api_key: str, model: str) -> bool:
 
     Fails open (returns True) on API errors to avoid blocking valid requests/uploads.
     """
-    client = anthropic.Anthropic(api_key=api_key)
+    client = llm._get_client(api_key)
     try:
         response = await asyncio.to_thread(
             client.messages.create, **build_request(system, content, model=model),
@@ -178,7 +178,7 @@ async def _classify(system: str, content, api_key: str, model: str) -> bool:
 
 def _classify_sync(system: str, content, api_key: str, model: str) -> bool:
     """Synchronous version of _classify — use in background threads where there is no running event loop."""
-    client = anthropic.Anthropic(api_key=api_key)
+    client = llm._get_client(api_key)
     try:
         response = client.messages.create(**build_request(system, content, model=model))
         return parse_response(response.content[0].text)
