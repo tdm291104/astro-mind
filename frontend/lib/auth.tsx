@@ -20,10 +20,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void api.me().then((u) => {
-      setUser(u);
-      setLoading(false);
-    });
+    void api.me()
+      .then((u) => setUser(u))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
