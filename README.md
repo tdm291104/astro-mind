@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="frontend/public/brand.png" alt="AstroMind" width="120" height="120">
+  <img src="docs/icon.svg" alt="AstroMind" width="120" height="120">
   <h1>AstroMind</h1>
   <p>A multi-agent AI assistant for astronomy — conversational search, RAG with citations, NASA/arXiv integration, astronomical image analysis, and trend reports.</p>
 
