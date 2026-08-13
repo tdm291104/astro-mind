@@ -387,6 +387,7 @@ class OrchestratorAgent:
             nasa_api_key=self.nasa_api_key,
             tavily_key=self.tavily_key,
             api_key=self.api_key,
+            model=self.model_light,
         )
         result = await search.run(
             args.get("query", ""),

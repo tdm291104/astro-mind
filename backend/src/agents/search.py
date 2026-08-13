@@ -117,11 +117,11 @@ def parse_translate_response(raw_text: str, fallback_query: str) -> str:
     return translated if translated else fallback_query
 
 
-async def _translate_to_english(query: str, api_key: str) -> str:
+async def _translate_to_english(query: str, api_key: str, model: str = _HAIKU) -> str:
     """Translate query to English for better API results. Fails open."""
     try:
         client = anthropic.AsyncAnthropic(api_key=api_key)
-        resp = await client.messages.create(**build_translate_request(query))
+        resp = await client.messages.create(**build_translate_request(query, model=model))
         return parse_translate_response(resp.content[0].text, query)
     except Exception:
         return query
@@ -161,14 +161,14 @@ def parse_score_response(raw_text: str, num_candidates: int) -> list[float]:
 
 
 async def _score_relevance(
-    candidates: list[Candidate], query_en: str, api_key: str,
+    candidates: list[Candidate], query_en: str, api_key: str, model: str = _HAIKU,
 ) -> list[float]:
     """One Haiku call to score all candidates 0-10. Fails open (all score 5.0)."""
     if not candidates or not api_key:
         return [5.0] * len(candidates)
     try:
         client = anthropic.AsyncAnthropic(api_key=api_key)
-        resp = await client.messages.create(**build_score_request(candidates, query_en))
+        resp = await client.messages.create(**build_score_request(candidates, query_en, model=model))
         return parse_score_response(resp.content[0].text, len(candidates))
     except Exception:
         return [5.0] * len(candidates)
@@ -237,6 +237,7 @@ class SearchAgent:
     nasa_api_key: str
     tavily_key: str
     api_key: str = ""  # Anthropic key for translation + scoring
+    model: str = _HAIKU
 
     async def run(
         self,
@@ -268,7 +269,7 @@ class SearchAgent:
 
         # Fan-out sources + translate query in parallel
         translate_coro = (
-            _translate_to_english(query, self.api_key)
+            _translate_to_english(query, self.api_key, self.model)
             if self.api_key and not dry_run
             else _noop(query)
         )
@@ -288,7 +289,7 @@ class SearchAgent:
         if dry_run or not self.api_key:
             scores: list[float] = [5.0] * len(candidates)
         else:
-            scores = await _score_relevance(candidates, query_en, self.api_key)
+            scores = await _score_relevance(candidates, query_en, self.api_key, self.model)
 
         for c, s in zip(candidates, scores):
             c.score = s
