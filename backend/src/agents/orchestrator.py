@@ -1,8 +1,11 @@
 import asyncio
+import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import AsyncIterator
+
+_logger = logging.getLogger(__name__)
 
 from agents import llm
 from agents.base import (
@@ -141,6 +144,11 @@ def _build_system_prompt(locale: str = "vi") -> list[dict]:
 
 _MD_IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
 
+_ROUTE_PRI: dict[str, int] = {
+    "report": 4, "notebook": 3, "notebook_fallback_chat": 3,
+    "image": 2, "search": 1, "search_web": 1,
+}
+
 
 def _extract_search_images(text: str) -> list[dict]:
     """Extract ![title](url) markdown from tool result text into structured dicts."""
@@ -212,8 +220,6 @@ class OrchestratorAgent:
         route = "chat"
         report_id: str | None = None
         image_analysis_data: dict | None = None
-        _ROUTE_PRI = {"report": 4, "notebook": 3, "notebook_fallback_chat": 3,
-                      "image": 2, "search": 1, "search_web": 1}
 
         try:
             for _ in range(MAX_ITER):
@@ -301,151 +307,181 @@ class OrchestratorAgent:
             analysis_data=image_analysis_data, suggested_action=suggested_action,
         )
 
+    # ---- tool dispatch -------------------------------------------------------
+
     async def _dispatch_tool(
         self, name: str, args: dict, *, dry_run: bool,
         pre_fetched_papers: list | None = None,
         pre_fetched_web: list | None = None,
         search_images: list | None = None,
     ) -> tuple[str, list, str, str | None, list, dict | None, list]:
-        if name == "analyze_astronomy_image":
-            image_url_arg = args.get("image_url", "")
-            if not self.image_data and not image_url_arg:
-                return "Không có ảnh nào để phân tích.", [], "chat", None, [], None, []
-            if dry_run:
-                return (
-                    '[dry-run] {"detected_objects": [{"class_name": "galaxy", '
-                    '"sub_type": "spiral", "confidence": "high", "description": "Test galaxy"}]}',
-                    [], "chat", None, [], None, [],
-                )
-            if image_url_arg:
-                image_data = await _fetch_image_as_base64(image_url_arg)
-                if image_data is None:
-                    return "Không thể tải ảnh từ URL đã cung cấp.", [], "chat", None, [], None, []
-            else:
-                image_data = self.image_data  # type: ignore[assignment]
-            from agents.image_agent import ImageAgent
-            img_agent = ImageAgent()
-            result = await img_agent.analyze(
-                image_data=image_data,
-                user_question=args.get("question", ""),
-                api_key=self.api_key,
-                model=self.model_light,
-            )
-            if not result.detected_objects:
-                return (
-                    "Không nhận ra thiên thể nào trong ảnh này. "
-                    "Có thể ảnh không phải ảnh thiên văn hoặc chất lượng chưa đủ rõ.",
-                    [], "image", None, [], None, [],
-                )
-            objects_data = [
-                {
-                    "class_name": o.class_name,
-                    "sub_type": o.sub_type,
-                    "confidence": o.confidence,
-                    "description": o.description,
-                }
-                for o in result.detected_objects
-            ]
-            analysis_data = {
-                "detected_objects": objects_data,
-                "morphology_context": result.morphology_context,
-            }
+        handlers = {
+            "analyze_astronomy_image": self._handle_image,
+            "call_search_agent": self._handle_search,
+            "call_notebook_agent": self._handle_notebook,
+            "call_report_agent": self._handle_report,
+        }
+        handler = handlers.get(name)
+        if handler is None:
+            return f"Unknown tool: {name}", [], "chat", None, [], None, []
+        return await handler(
+            args, dry_run=dry_run,
+            pre_fetched_papers=pre_fetched_papers,
+            pre_fetched_web=pre_fetched_web,
+            search_images=search_images,
+        )
+
+    async def _handle_image(
+        self, args: dict, *, dry_run: bool, **_
+    ) -> tuple[str, list, str, str | None, list, dict | None, list]:
+        image_url_arg = args.get("image_url", "")
+        if not self.image_data and not image_url_arg:
+            return "Không có ảnh nào để phân tích.", [], "chat", None, [], None, []
+        if dry_run:
             return (
-                _format_image_analysis_text(objects_data, result.morphology_context, self.locale),
-                [], "image", None, [], analysis_data, [],
+                '[dry-run] {"detected_objects": [{"class_name": "galaxy", '
+                '"sub_type": "spiral", "confidence": "high", "description": "Test galaxy"}]}',
+                [], "chat", None, [], None, [],
+            )
+        if image_url_arg:
+            image_data = await _fetch_image_as_base64(image_url_arg)
+            if image_data is None:
+                return "Không thể tải ảnh từ URL đã cung cấp.", [], "chat", None, [], None, []
+        else:
+            image_data = self.image_data  # type: ignore[assignment]
+        from agents.image_agent import ImageAgent
+        result = await ImageAgent().analyze(
+            image_data=image_data,
+            user_question=args.get("question", ""),
+            api_key=self.api_key,
+            model=self.model_light,
+        )
+        if not result.detected_objects:
+            return (
+                "Không nhận ra thiên thể nào trong ảnh này. "
+                "Có thể ảnh không phải ảnh thiên văn hoặc chất lượng chưa đủ rõ.",
+                [], "image", None, [], None, [],
+            )
+        objects_data = [
+            {
+                "class_name": o.class_name,
+                "sub_type": o.sub_type,
+                "confidence": o.confidence,
+                "description": o.description,
+            }
+            for o in result.detected_objects
+        ]
+        analysis_data = {
+            "detected_objects": objects_data,
+            "morphology_context": result.morphology_context,
+        }
+        return (
+            _format_image_analysis_text(objects_data, result.morphology_context, self.locale),
+            [], "image", None, [], analysis_data, [],
+        )
+
+    async def _handle_search(
+        self, args: dict, *, dry_run: bool, **_
+    ) -> tuple[str, list, str, str | None, list, dict | None, list]:
+        search = SearchAgent(
+            nasa_api_key=self.nasa_api_key,
+            tavily_key=self.tavily_key,
+            api_key=self.api_key,
+        )
+        result = await search.run(
+            args.get("query", ""),
+            sources=args.get("sources"),
+            # web_days=0 → no filter (historical queries); absent → default 90 days
+            web_days=args.get("web_days", _WEB_RECENCY_DAYS_DEFAULT),
+            dry_run=dry_run,
+        )
+        return result.text, [], "search", None, result.arxiv_papers, None, result.web_sources
+
+    async def _handle_notebook(
+        self, args: dict, *, dry_run: bool, **_
+    ) -> tuple[str, list, str, str | None, list, dict | None, list]:
+        if self.store is None or self.vector is None or self.embedder is None:
+            return "Notebook không khả dụng.", [], "notebook", None, [], None, []
+        nb = NotebookAgent(
+            store=self.store,
+            vector=self.vector,
+            embedder=self.embedder,
+            api_key=self.api_key,
+            model=self.model_light,
+            user_id=self.user_id,
+            reranker=self.reranker,
+        )
+        nb_result = await asyncio.to_thread(
+            nb.run,
+            args.get("question", ""),
+            doc_ids=args.get("doc_ids") or self.doc_ids,
+            dry_run=dry_run,
+        )
+        return nb_result.text, nb_result.citations, "notebook", None, [], None, []
+
+    async def _handle_report(
+        self, args: dict, *, dry_run: bool,
+        pre_fetched_papers: list | None = None,
+        pre_fetched_web: list | None = None,
+        search_images: list | None = None,
+        **_,
+    ) -> tuple[str, list, str, str | None, list, dict | None, list]:
+        if not self.store or not self.user_id:
+            return "Report agent không khả dụng.", [], "report", None, [], None, []
+
+        topic = args.get("topic", "")
+        report_type = args.get("report_type", "research")
+
+        if dry_run:
+            return f"[dry-run] Đang tạo báo cáo về: {topic}", [], "report", None, [], None, []
+
+        from agents.report_agent import _EMPTY_PAYLOAD
+        if report_type == "discovery" and not topic.strip():
+            title = "Báo cáo khám phá phiên làm việc"
+        else:
+            label = topic[:60].strip()
+            prefix = _REPORT_TITLE_PREFIX.get(self.locale, "Báo cáo")
+            title = f"{prefix}: {label}"
+        initial_payload = {**_EMPTY_PAYLOAD, "report_type": report_type}
+        report_id = self.store.create_report(self.user_id, title, initial_payload)
+
+        agent = ReportAgent(
+            api_key=self.api_key,
+            model=self.model,
+            model_light=self.model_light,
+            tavily_key=self.tavily_key,
+            serpapi_api_key=self.serpapi_api_key,
+            store=self.store,
+            user_id=self.user_id,
+            vector=self.vector,
+            embedder=self.embedder,
+            reranker=self.reranker,
+            locale=self.locale,
+        )
+
+        doc_ids = args.get("doc_ids") or self.doc_ids
+        _papers = list(pre_fetched_papers) if pre_fetched_papers else []
+        _web = list(pre_fetched_web) if pre_fetched_web else []
+        _imgs = list(search_images) if search_images else []
+
+        async def _bg_generate() -> None:
+            await asyncio.to_thread(
+                agent.run_update, report_id, topic,
+                report_type=report_type, doc_ids=doc_ids, conversation_id=self.conversation_id,
+                pre_fetched_papers=_papers, pre_fetched_web=_web, search_images=_imgs,
             )
 
-        if name == "call_search_agent":
-            search = SearchAgent(
-                nasa_api_key=self.nasa_api_key,
-                tavily_key=self.tavily_key,
-                api_key=self.api_key,
-            )
-            result = await search.run(
-                args.get("query", ""),
-                sources=args.get("sources"),
-                # web_days=0 → no filter (historical queries); absent → default 90 days
-                web_days=args.get("web_days", _WEB_RECENCY_DAYS_DEFAULT),
-                dry_run=dry_run,
-            )
-            return result.text, [], "search", None, result.arxiv_papers, None, result.web_sources
+        task = asyncio.create_task(_bg_generate())
+        task.add_done_callback(
+            lambda t: _logger.error("report generation failed for %s", report_id, exc_info=t.exception())
+            if not t.cancelled() and t.exception() else None
+        )
 
-        if name == "call_notebook_agent":
-            if self.store is None or self.vector is None or self.embedder is None:
-                return "Notebook không khả dụng.", [], "notebook", None, [], None, []
-            nb = NotebookAgent(
-                store=self.store,
-                vector=self.vector,
-                embedder=self.embedder,
-                api_key=self.api_key,
-                model=self.model_light,
-                user_id=self.user_id,
-                reranker=self.reranker,
-            )
-            nb_result = await asyncio.to_thread(
-                nb.run,
-                args.get("question", ""),
-                doc_ids=args.get("doc_ids") or self.doc_ids,
-                dry_run=dry_run,
-            )
-            return nb_result.text, nb_result.citations, "notebook", None, [], None, []
-
-        if name == "call_report_agent":
-            if not self.store or not self.user_id:
-                return "Report agent không khả dụng.", [], "report", None, [], None, []
-
-            topic = args.get("topic", "")
-            report_type = args.get("report_type", "research")
-
-            if dry_run:
-                return f"[dry-run] Đang tạo báo cáo về: {topic}", [], "report", None, [], None, []
-
-            from agents.report_agent import _EMPTY_PAYLOAD
-            if report_type == "discovery" and not topic.strip():
-                title = "Báo cáo khám phá phiên làm việc"
-            else:
-                label = topic[:60].strip()
-                prefix = _REPORT_TITLE_PREFIX.get(self.locale, "Báo cáo")
-                title = f"{prefix}: {label}"
-            initial_payload = {**_EMPTY_PAYLOAD, "report_type": report_type}
-            report_id = self.store.create_report(self.user_id, title, initial_payload)
-
-            agent = ReportAgent(
-                api_key=self.api_key,
-                model=self.model,
-                model_light=self.model_light,
-                tavily_key=self.tavily_key,
-                serpapi_api_key=self.serpapi_api_key,
-                store=self.store,
-                user_id=self.user_id,
-                vector=self.vector,
-                embedder=self.embedder,
-                reranker=self.reranker,
-                locale=self.locale,
-            )
-
-            doc_ids = args.get("doc_ids") or self.doc_ids
-
-            _papers = list(pre_fetched_papers) if pre_fetched_papers else []
-            _web = list(pre_fetched_web) if pre_fetched_web else []
-            _imgs = list(search_images) if search_images else []
-
-            async def _bg_generate() -> None:
-                await asyncio.to_thread(
-                    agent.run_update, report_id, topic,
-                    report_type=report_type, doc_ids=doc_ids, conversation_id=self.conversation_id,
-                    pre_fetched_papers=_papers, pre_fetched_web=_web, search_images=_imgs,
-                )
-
-            asyncio.create_task(_bg_generate())
-
-            summary = (
-                f"Đang tạo báo cáo '{title}' trong nền. "
-                "Bạn có thể tiếp tục chat — tôi sẽ thông báo ngay khi báo cáo hoàn tất."
-            )
-            return summary, [], "report", report_id, [], None, []
-
-        return f"Unknown tool: {name}", [], "chat", None, [], None, []
+        summary = (
+            f"Đang tạo báo cáo '{title}' trong nền. "
+            "Bạn có thể tiếp tục chat — tôi sẽ thông báo ngay khi báo cáo hoàn tất."
+        )
+        return summary, [], "report", report_id, [], None, []
 
     def _suggest_action(
         self, *, route: str, image_analysis_data: dict | None,

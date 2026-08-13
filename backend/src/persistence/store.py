@@ -3,18 +3,6 @@ import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-
-def _iso(dt: datetime) -> str:
-    """Serialize datetime to ISO 8601, always with UTC offset.
-
-    SQLite drops tzinfo on read-back, so naive datetimes stored as UTC
-    must have +00:00 re-attached before serializing — otherwise JavaScript
-    treats the string as local time and relative timestamps are wrong.
-    """
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=UTC)
-    return dt.isoformat()
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -36,6 +24,18 @@ from .orm import (
     ensure_schema,
     make_engine,
 )
+
+
+def _iso(dt: datetime) -> str:
+    """Serialize datetime to ISO 8601, always with UTC offset.
+
+    SQLite drops tzinfo on read-back, so naive datetimes stored as UTC
+    must have +00:00 re-attached before serializing — otherwise JavaScript
+    treats the string as local time and relative timestamps are wrong.
+    """
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt.isoformat()
 
 
 def _chunk_from_row(row: ChunkRow) -> Chunk:
@@ -126,6 +126,17 @@ class MetaStore:
             row.name = name
             s.commit()
         return True
+
+    def get_document(self, doc_id: str, user_id: str) -> Document | None:
+        """Fetch a single document by id, scoped to user. O(1) — use instead of list_documents() filter."""
+        with Session(self._engine) as s:
+            row = s.get(DocumentRow, doc_id)
+            if row is None or row.user_id != user_id:
+                return None
+            return Document(
+                id=row.id, name=row.name, type=row.type, file_path=row.file_path,
+                page_count=row.page_count, created_at=row.created_at, user_id=row.user_id,
+            )
 
     def fetch_chunks(self, chunk_ids: list[str]) -> list[tuple[Chunk, str]]:
         """Return [(chunk, doc_name)] for each id, preserving input order; skip unknown ids."""

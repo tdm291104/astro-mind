@@ -1,10 +1,12 @@
 import asyncio
 import logging
+import re
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from fastapi import (
     BackgroundTasks,
@@ -21,8 +23,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from agents.base import collect_events as _collect_events
 from agents.conversation import generate_title, memory_from_messages
 from agents.document_analyzer import run_analysis
+from agents.guard import InputGuard, _REJECT_DOCUMENT_MESSAGE, get_reject_message
+from agents.notebook import NotebookAgent
 from agents.orchestrator import OrchestratorAgent
 from agents.synthetic_chunks import build_synthetic_chunks
 from api.auth import build_auth_router, get_current_user, require_admin, require_jwt_secret
@@ -38,6 +43,7 @@ from persistence.embed import Embedder
 from persistence.rerank import Reranker
 from persistence.store import MetaStore
 from persistence.vector import VectorStore
+from reports.pdf import render_report_pdf
 from sources.apod import fetch_apod, shape_apod
 from sources.arxiv import fetch_arxiv
 from sources.health import check_source
@@ -77,7 +83,7 @@ class ConverseRequest(BaseModel):
     web: bool = True                  # per-turn web toggle
     image_data: str | None = None     # base64-encoded image (data URL or raw base64)
     image_type: str | None = None     # MIME type, e.g. "image/jpeg"
-    locale: str | None = None         # "vi" | "en" | "ja"
+    locale: Literal["vi", "en", "ja"] | None = None
 
 
 class AskRequest(BaseModel):
@@ -116,7 +122,6 @@ class NewsletterSubscribe(BaseModel):
     @field_validator("email")
     @classmethod
     def validate_email(cls, v: str) -> str:
-        import re
         if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
             raise ValueError("invalid email address")
         return v.lower().strip()
@@ -234,8 +239,14 @@ def serve_image(
     res: Resources = Depends(get_resources),
     user: User = Depends(get_current_user),
 ) -> FileResponse:
-    img_path = res.settings.images_dir / filename
-    if not img_path.exists() or not img_path.is_file():
+    # Reject any filename containing path separators or parent-directory references
+    if not filename or "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    img_path = (res.settings.images_dir / filename).resolve()
+    # Confirm the resolved path is still inside images_dir (defense in depth)
+    if not str(img_path).startswith(str(res.settings.images_dir.resolve())):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    if not img_path.is_file():
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(img_path)
 
@@ -484,8 +495,6 @@ def get_report_pdf(
     if report is None:
         raise HTTPException(status_code=404, detail="Báo cáo không tồn tại")
 
-    from reports.pdf import render_report_pdf
-
     pdf_bytes = render_report_pdf(report["title"], report["created_at"], report["payload"])
     return Response(
         content=pdf_bytes,
@@ -516,7 +525,6 @@ def ask(
     res: Resources = Depends(get_resources),
 ) -> dict:
     import dataclasses
-    from agents.notebook import NotebookAgent
     agent = NotebookAgent(
         store=res.store,
         vector=res.vector,
@@ -666,10 +674,6 @@ def rename_document(
 _VIEW_MEDIA = {"pdf": "application/pdf", "text": "text/plain"}
 
 
-def _find_doc(res: Resources, doc_id: str, user_id: str):
-    return next((d for d in res.store.list_documents(user_id=user_id) if d.id == doc_id), None)
-
-
 def _raw_path(res: Resources, doc_id: str) -> Path | None:
     matches = sorted(res.settings.docs_dir.glob(f"{doc_id}.*"))
     return matches[0] if matches else None
@@ -681,7 +685,7 @@ def document_view(
     res: Resources = Depends(get_resources),
     user: User = Depends(get_current_user),
 ) -> dict:
-    doc = _find_doc(res, doc_id, user.id)
+    doc = res.store.get_document(doc_id, user.id)
     if doc is None:
         raise HTTPException(status_code=404, detail="Tài liệu không tồn tại")
     base = {"id": doc.id, "name": doc.name, "type": doc.type}
@@ -704,7 +708,7 @@ def document_file(
     res: Resources = Depends(get_resources),
     user: User = Depends(get_current_user),
 ) -> Response:
-    doc = _find_doc(res, doc_id, user.id)
+    doc = res.store.get_document(doc_id, user.id)
     path = _raw_path(res, doc_id) if doc is not None else None
     if doc is None or path is None:
         raise HTTPException(status_code=404, detail="Tệp không tồn tại")
@@ -720,7 +724,7 @@ def document_preview(
     res: Resources = Depends(get_resources),
     user: User = Depends(get_current_user),
 ) -> Response:
-    doc = _find_doc(res, doc_id, user.id)
+    doc = res.store.get_document(doc_id, user.id)
     path = _raw_path(res, doc_id) if doc is not None else None
     if doc is None or path is None or doc.type != "fits":
         raise HTTPException(status_code=404, detail="Không có ảnh preview")
@@ -736,7 +740,7 @@ def document_fits_header(
     res: Resources = Depends(get_resources),
     user: User = Depends(get_current_user),
 ) -> dict:
-    doc = _find_doc(res, doc_id, user.id)
+    doc = res.store.get_document(doc_id, user.id)
     path = _raw_path(res, doc_id) if doc is not None else None
     if doc is None or path is None or doc.type != "fits":
         raise HTTPException(status_code=404, detail="Không phải tệp FITS")
@@ -749,7 +753,7 @@ def document_analysis(
     res: Resources = Depends(get_resources),
     user: User = Depends(get_current_user),
 ) -> dict:
-    doc = _find_doc(res, doc_id, user.id)
+    doc = res.store.get_document(doc_id, user.id)
     if doc is None:
         raise HTTPException(status_code=404, detail="Tài liệu không tồn tại")
     record = res.store.get_document_analysis(doc_id)
@@ -800,14 +804,13 @@ def _run_ingest(jobs, job_id, doc, kind, source, res) -> None:
     try:
         blocks = ingestion.parse_file(source) if kind == "file" else parse_url(source)
 
-        from agents.guard import InputGuard, _REJECT_DOCUMENT_MESSAGE
         sample = "\n\n".join(b.text for b in blocks[:5]).strip()
         if sample:
-            relevant = asyncio.run(InputGuard().is_document_relevant(
+            relevant = InputGuard().is_document_relevant_sync(
                 sample,
                 api_key=res.settings.anthropic_api_key,
                 model=res.settings.anthropic_model_light,
-            ))
+            )
             if not relevant:
                 jobs[job_id].status = "failed"
                 jobs[job_id].error = _REJECT_DOCUMENT_MESSAGE
@@ -973,8 +976,6 @@ async def assistant(
         return {"session_id": conv_id, "reply": text, "route": "report", "report_id": report_id,
                 "citations": [], "fallback_query": None, "title": created_title}
 
-    from agents.base import collect_events as _collect_events
-
     agent = OrchestratorAgent(
         api_key=res.settings.anthropic_api_key,
         model=res.settings.anthropic_model,
@@ -1081,7 +1082,6 @@ async def converse(
 
     # Input guard: reject off-topic requests before running orchestrator
     if not req.dry_run and (req.message.strip() or req.image_data):
-        from agents.guard import InputGuard, get_reject_message
         _guard = InputGuard()
         doc_names = None
         if parsed_doc_ids:

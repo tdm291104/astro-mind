@@ -176,6 +176,16 @@ async def _classify(system: str, content, api_key: str, model: str) -> bool:
         return True  # fail open — never block on guard errors
 
 
+def _classify_sync(system: str, content, api_key: str, model: str) -> bool:
+    """Synchronous version of _classify — use in background threads where there is no running event loop."""
+    client = anthropic.Anthropic(api_key=api_key)
+    try:
+        response = client.messages.create(**build_request(system, content, model=model))
+        return parse_response(response.content[0].text)
+    except Exception:
+        return True  # fail open
+
+
 class InputGuard:
     async def is_relevant(
         self,
@@ -207,3 +217,7 @@ class InputGuard:
         Fails open (returns True) on API errors so uploads aren't blocked by guard issues.
         """
         return await _classify(_DOCUMENT_SYSTEM, text[:4000], api_key, model)
+
+    def is_document_relevant_sync(self, text: str, api_key: str, model: str) -> bool:
+        """Synchronous version — use in background threads (e.g. ingest pipeline)."""
+        return _classify_sync(_DOCUMENT_SYSTEM, text[:4000], api_key, model)

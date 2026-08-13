@@ -1,3 +1,11 @@
+async function extractErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = await res.json();
+    if (typeof body?.detail === "string") return body.detail;
+  } catch {}
+  return fallback;
+}
+
 async function postJson<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(path, {
     method: "POST",
@@ -6,7 +14,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     credentials: "include",
   });
   if (!res.ok) {
-    throw new Error(`Request failed: ${res.status}`);
+    throw new Error(await extractErrorMessage(res, `Request failed: ${res.status}`));
   }
   return res.json();
 }
@@ -14,7 +22,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(path, { credentials: "include" });
   if (!res.ok) {
-    throw new Error(`Request failed: ${res.status}`);
+    throw new Error(await extractErrorMessage(res, `Request failed: ${res.status}`));
   }
   return res.json();
 }
@@ -114,25 +122,28 @@ export function getConversation(id: string): Promise<ConversationDetail> {
 }
 
 export async function setConversationPinned(id: string, pinned: boolean): Promise<void> {
-  await fetch(`/api/conversations/${encodeURIComponent(id)}`, {
+  const res = await fetch(`/api/conversations/${encodeURIComponent(id)}`, {
     method: "PATCH",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ pinned }),
     credentials: "include",
   });
+  if (!res.ok) throw new Error(await extractErrorMessage(res, `Request failed: ${res.status}`));
 }
 
 export async function renameConversation(id: string, title: string): Promise<void> {
-  await fetch(`/api/conversations/${encodeURIComponent(id)}`, {
+  const res = await fetch(`/api/conversations/${encodeURIComponent(id)}`, {
     method: "PATCH",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ title }),
     credentials: "include",
   });
+  if (!res.ok) throw new Error(await extractErrorMessage(res, `Request failed: ${res.status}`));
 }
 
 export async function deleteConversation(id: string): Promise<void> {
-  await fetch(`/api/conversations/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "include" });
+  const res = await fetch(`/api/conversations/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "include" });
+  if (!res.ok) throw new Error(await extractErrorMessage(res, `Request failed: ${res.status}`));
 }
 
 export function postAssistant(
@@ -271,7 +282,8 @@ export function getReports(limit = 10, offset = 0): Promise<{ reports: ReportSum
 }
 
 export async function deleteReport(id: string): Promise<void> {
-  await fetch(`/api/reports/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "include" });
+  const res = await fetch(`/api/reports/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "include" });
+  if (!res.ok) throw new Error(await extractErrorMessage(res, `Request failed: ${res.status}`));
 }
 
 export async function renameReport(id: string, title: string): Promise<void> {
@@ -283,7 +295,8 @@ export async function renameReport(id: string, title: string): Promise<void> {
 }
 
 export async function deleteDocument(id: string): Promise<void> {
-  await fetch(`/api/documents/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "include" });
+  const res = await fetch(`/api/documents/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "include" });
+  if (!res.ok) throw new Error(await extractErrorMessage(res, `Request failed: ${res.status}`));
 }
 
 export async function renameDocument(id: string, name: string): Promise<void> {
