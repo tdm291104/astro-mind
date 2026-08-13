@@ -1,100 +1,104 @@
-# AstroMind
+<div align="center">
+  <img src="frontend/public/brand.png" alt="AstroMind" width="120" height="120">
+  <h1>AstroMind</h1>
+  <p>A multi-agent AI assistant for astronomy — conversational search, RAG with citations, NASA/arXiv integration, astronomical image analysis, and trend reports.</p>
 
-> AI assistant đa tác nhân chuyên về thiên văn học — hội thoại, RAG có trích dẫn, tìm kiếm NASA/arXiv, phân tích ảnh thiên văn và báo cáo xu hướng.
+  ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+  ![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
+  ![Claude](https://img.shields.io/badge/Claude-API-D97706?logo=anthropic)
+  ![License](https://img.shields.io/badge/license-MIT-22c55e)
 
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
-![Claude](https://img.shields.io/badge/Claude-API-D97706?logo=anthropic)
-![License](https://img.shields.io/badge/license-MIT-22c55e)
+  <sub>Graduation project — University of Science and Technology, The University of Da Nang (DUT)</sub>
+</div>
 
 ---
 
-## Tính năng
+## Features
 
-- **Chat đa tác nhân** — OrchestratorAgent điều phối SearchAgent, NotebookAgent, ReportAgent, ImageAgent với extended thinking (interleaved-thinking beta)
-- **Notebook RAG** — tải PDF/DOCX/FITS, phân đoạn, embed (multilingual-e5-small), rerank và trả lời có trích dẫn nguồn
-- **Tìm kiếm NASA/arXiv** — APOD, NASA Images, web search (Tavily), lọc bài báo arXiv
-- **Phân tích ảnh** — Claude Vision + CNN phân loại hình thái thiên hà (Keras), FITS viewer với colormap/stretch
-- **Báo cáo xu hướng** — Google Trends + arXiv, xuất PDF
-- **Admin dashboard** — quản lý user, quota, data source, usage analytics
-- **I18n** — Tiếng Việt / English / 日本語
+- **Multi-agent orchestration** — OrchestratorAgent coordinates SearchAgent, NotebookAgent, ReportAgent, and ImageAgent with extended thinking (interleaved-thinking beta)
+- **RAG Notebook** — upload PDF/DOCX/FITS files, chunk, embed (multilingual-e5-small), rerank, and answer with inline citations
+- **NASA/arXiv search** — APOD, NASA Images, web search (Tavily), arXiv paper filtering
+- **Image analysis** — Claude Vision + CNN galaxy morphology classifier (Keras), FITS viewer with colormap and stretch controls
+- **Trend reports** — Google Trends + arXiv paper volume, exported as PDF
+- **Admin dashboard** — user management, quota configuration, data source monitoring, usage analytics
+- **i18n** — Vietnamese / English / Japanese
 
-## Kiến trúc
+## Architecture
 
 ```
 frontend (Next.js 14)  ──API proxy──▶  backend (FastAPI)
-                                            │
-                        ┌───────────────────┼────────────────────┐
-                        │                   │                    │
-                   ChromaDB            SQLite (ORM)        Anthropic API
-                (vector store)       (users, docs,        (Claude claude-sonnet-4-6
-                                      sessions)            + Haiku sub-agents)
+                                              │
+                          ┌───────────────────┼────────────────────┐
+                          │                   │                    │
+                     ChromaDB            SQLite (ORM)        Anthropic API
+                  (vector store)       (users, docs,        (Sonnet orchestrator
+                                         sessions)           + Haiku sub-agents)
 ```
 
-## Yêu cầu
+## Prerequisites
 
-- Python 3.11+ với [uv](https://docs.astral.sh/uv/)
-- Node.js 18+ với [pnpm](https://pnpm.io/)
-- Anthropic API key
+- Python 3.11+ with [uv](https://docs.astral.sh/uv/)
+- Node.js 18+ with [pnpm](https://pnpm.io/)
+- An [Anthropic API key](https://console.anthropic.com/)
 
-## Chạy local
+## Local Development
 
 ```bash
 # Backend
 cd backend
-cp .env.example .env        # điền ANTHROPIC_API_KEY, JWT_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD
+cp .env.example .env        # fill in ANTHROPIC_API_KEY, JWT_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD
 uv sync
 uv run uvicorn src.api.app:app --reload   # http://localhost:8000
 
-# Frontend (terminal mới)
+# Frontend (new terminal)
 cd frontend
 pnpm install
 pnpm dev                    # http://localhost:3000
 ```
 
-Mở http://localhost:3000 → đăng ký tài khoản hoặc đăng nhập bằng `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+Open http://localhost:3000 and sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
 ## Docker
 
 ```bash
-cp backend/.env.example backend/.env   # điền các biến bắt buộc
-cp .env.example .env                   # CLOUDFLARE_TUNNEL_TOKEN (tuỳ chọn)
+cp backend/.env.example backend/.env   # fill in required variables
+cp .env.example .env                   # CLOUDFLARE_TUNNEL_TOKEN (optional)
 
 docker compose up -d --build
 ```
 
-Dữ liệu (SQLite, ChromaDB, uploads) được lưu trong volume `astromind_data`.  
-Truy cập tại http://localhost:3000.
+Application data (SQLite, ChromaDB, uploads) is stored in the `astromind_data` named volume.  
+Access at http://localhost:3000.
 
-## Biến môi trường
+## Environment Variables
 
-`backend/.env` — copy từ `backend/.env.example`:
+`backend/.env` — copy from `backend/.env.example`:
 
-| Biến | Bắt buộc | Mô tả |
+| Variable | Required | Description |
 |---|:---:|---|
 | `ANTHROPIC_API_KEY` | ✅ | Claude API key |
-| `JWT_SECRET` | ✅ | ≥ 32 ký tự ngẫu nhiên (`python -c "import secrets; print(secrets.token_urlsafe(32))"`) |
-| `ADMIN_EMAIL` | ✅ | Email tài khoản admin khởi tạo |
-| `ADMIN_PASSWORD` | ✅ | Mật khẩu admin |
-| `GOOGLE_CLIENT_ID/SECRET` | ☐ | OAuth Google |
-| `GITHUB_CLIENT_ID/SECRET` | ☐ | OAuth GitHub |
-| `NASA_API_KEY` | ☐ | APOD + NASA Images (mặc định `DEMO_KEY`) |
+| `JWT_SECRET` | ✅ | Random string ≥ 32 chars (`python -c "import secrets; print(secrets.token_urlsafe(32))"`) |
+| `ADMIN_EMAIL` | ✅ | Bootstrap admin email |
+| `ADMIN_PASSWORD` | ✅ | Bootstrap admin password |
+| `GOOGLE_CLIENT_ID/SECRET` | ☐ | Google OAuth |
+| `GITHUB_CLIENT_ID/SECRET` | ☐ | GitHub OAuth |
+| `NASA_API_KEY` | ☐ | APOD + NASA Images (defaults to `DEMO_KEY`) |
 | `TAVILY_API_KEY` | ☐ | Web search |
-| `SERPAPI_API_KEY` | ☐ | Google Trends (báo cáo xu hướng) |
-| `ANTHROPIC_MODEL` | ☐ | Orchestrator model (mặc định `claude-sonnet-4-6`) |
-| `ANTHROPIC_MODEL_LIGHT` | ☐ | Sub-agent model (mặc định `claude-haiku-4-5-20251001`) |
-| `COOKIE_SECURE` | ☐ | `true` khi chạy qua HTTPS |
+| `SERPAPI_API_KEY` | ☐ | Google Trends (trend reports) |
+| `ANTHROPIC_MODEL` | ☐ | Orchestrator model (default: `claude-sonnet-4-6`) |
+| `ANTHROPIC_MODEL_LIGHT` | ☐ | Sub-agent model (default: `claude-haiku-4-5-20251001`) |
+| `COOKIE_SECURE` | ☐ | Set `true` when running behind HTTPS |
 
 ## Galaxy Morphology Model
 
-File `galaxy_morphology_predictor/galaxy_morphology_predictor.keras` (~40 MB) không được commit vào repo. Để kích hoạt phân loại hình thái thiên hà:
+`galaxy_morphology_predictor/galaxy_morphology_predictor.keras` (~40 MB) is not committed to the repository. To enable galaxy morphology classification:
 
-1. Đặt file model vào `galaxy_morphology_predictor/galaxy_morphology_predictor.keras`
-2. Hoặc set `GALAXY_MODEL_PATH=/path/to/model.keras` trong `.env`
+1. Place the model file at `galaxy_morphology_predictor/galaxy_morphology_predictor.keras`
+2. Or set `GALAXY_MODEL_PATH=/path/to/model.keras` in `.env`
 
-Nếu không có model, `ImageAgent` vẫn hoạt động bình thường bằng Claude Vision.
+Without the model, `ImageAgent` still works using Claude Vision alone.
 
-## Kiểm thử
+## Testing
 
 ```bash
 cd backend && uv run pytest
@@ -103,4 +107,4 @@ cd frontend && pnpm lint && pnpm build
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
