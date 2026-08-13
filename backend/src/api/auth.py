@@ -1,8 +1,11 @@
 # src/api/auth.py
 import secrets
 from datetime import UTC, datetime
+from urllib.parse import urlencode
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 
 from auth.accounts import User, to_public_dict, user_from_row
@@ -87,7 +90,6 @@ def require_admin(user: User = Depends(get_current_user)) -> User:
 
 
 def _oauth_error(settings: Settings, error: str):
-    from fastapi.responses import RedirectResponse
     return RedirectResponse(url=f"{settings.frontend_url}/login?error={error}", status_code=302)
 
 
@@ -170,8 +172,6 @@ def build_auth_router() -> APIRouter:
             "state": state,
             "access_type": "offline",
         }
-        from urllib.parse import urlencode
-        from fastapi.responses import RedirectResponse
         url = "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params)
         response = RedirectResponse(url=url, status_code=302)
         response.set_cookie("oauth_state", state, httponly=True, samesite="lax", max_age=600, path="/")
@@ -189,8 +189,6 @@ def build_auth_router() -> APIRouter:
             err = _oauth_error(settings, "oauth_state_mismatch")
             err.delete_cookie("oauth_state", path="/")
             return err
-        import httpx
-        from fastapi.responses import RedirectResponse
         token_data = {
             "code": code,
             "client_id": settings.google_client_id,
@@ -229,8 +227,6 @@ def build_auth_router() -> APIRouter:
             return _oauth_error(settings, "oauth_not_configured")
         state = secrets.token_urlsafe(16)
         redirect_uri = f"{settings.frontend_url}/api/auth/github/callback"
-        from urllib.parse import urlencode
-        from fastapi.responses import RedirectResponse
         params = {
             "client_id": settings.github_client_id,
             "redirect_uri": redirect_uri,
@@ -254,8 +250,6 @@ def build_auth_router() -> APIRouter:
             err = _oauth_error(settings, "oauth_state_mismatch")
             err.delete_cookie("oauth_state", path="/")
             return err
-        import httpx
-        from fastapi.responses import RedirectResponse
         async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
             token_resp = await client.post(
                 "https://github.com/login/oauth/access_token",
@@ -280,7 +274,8 @@ def build_auth_router() -> APIRouter:
                 )
                 for e in emails_resp.json():
                     if isinstance(e, dict) and e.get("primary") and e.get("verified"):
-                        email = e["email"]; break
+                        email = e["email"]
+                        break
         email = email.lower().strip()
         if not email:
             return _oauth_error(settings, "github_no_email")

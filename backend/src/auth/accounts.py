@@ -4,6 +4,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.models import new_uuid
+from .security import hash_password
+
 if TYPE_CHECKING:
     from persistence.store import MetaStore
     from persistence.vector import VectorStore
@@ -38,10 +41,6 @@ def seed_admin(
 ) -> User | None:
     """Idempotent: if no users exist and credentials are given, create the admin and
     backfill orphan documents to it. Returns the admin User, or None if skipped."""
-    from core.models import new_uuid
-
-    from .security import hash_password
-
     if not email or not password:
         return None
     existing = store.get_user_by_email(email)
