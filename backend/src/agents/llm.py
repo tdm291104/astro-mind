@@ -1,8 +1,20 @@
+from functools import lru_cache
+
 from anthropic import Anthropic, AsyncAnthropic
 
 from core.metering import record_usage
 
 Message = dict  # {"role": "user"|"assistant"|"system", "content": str | list}
+
+
+@lru_cache(maxsize=4)
+def _get_client(api_key: str) -> Anthropic:
+    return Anthropic(api_key=api_key)
+
+
+@lru_cache(maxsize=4)
+def _get_async_client(api_key: str) -> AsyncAnthropic:
+    return AsyncAnthropic(api_key=api_key)
 
 
 def build_request(
@@ -49,7 +61,7 @@ def call(params: dict, *, api_key: str) -> str:
     """Execute a pre-built request params dict against the live API, record
     usage, and return the extracted text. Shared by complete() and any caller
     that built its own request via build_request()."""
-    client = Anthropic(api_key=api_key)
+    client = _get_client(api_key)
     resp = client.messages.create(**params)
     usage = getattr(resp, "usage", None)
     if usage is not None:
@@ -100,7 +112,7 @@ async def stream_react_step(
     Returns (content_blocks, stop_reason). Content blocks are Anthropic SDK
     objects with .type in: 'thinking' | 'tool_use' | 'text'.
     """
-    client = AsyncAnthropic(api_key=api_key)
+    client = _get_async_client(api_key)
     common = dict(
         model=model,
         system=system or "You are a helpful astronomy expert.",
